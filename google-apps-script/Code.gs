@@ -128,12 +128,6 @@ function sendPedidoEmail_(id, d, usuario) {
   }
 
   var html = '' +
-    '<h2>Nuevo Pedido</h2>' +
-    '<table cellpadding="6" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">' +
-    filaHtml_('No.', String(id)) +
-    filaHtml_('De', usuario.nombre + ' (' + usuario.email + ')') +
-    filaHtml_('Rol', usuario.role === 'admin' ? 'Admin' : 'Usuario') +
-    '</table>' +
     '<h3>Productos (' + total + ' en total)</h3>' +
     '<table cellpadding="6" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">' +
     '<tr><th style="border:1px solid #ddd;background:#f8f9fa">#</th>' +
@@ -142,10 +136,11 @@ function sendPedidoEmail_(id, d, usuario) {
     rowsHtml +
     '</table>' +
     '<table cellpadding="6" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">' +
+    filaHtml_('De', usuario.nombre + ' (' + usuario.email + ')') +
+    filaHtml_('Fecha', fechaLegible_(new Date())) +
     filaHtml_('Destino', d.destino || '-') +
     filaHtml_('Urgencia', d.urgencia || 'normal') +
     filaHtml_('Notas', d.notas || '-') +
-    filaHtml_('Fecha', fechaLegible_(new Date())) +
     '</table>';
 
   return sendEmail_(subject, html);
