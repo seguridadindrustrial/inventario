@@ -11,11 +11,12 @@
  * 3. Borra el contenido y pega TODO este codigo
  * 4. Configura la lista de emails en ADMIN_EMAILS (mas abajo)
  * 5. Guarda (Ctrl+S) y ejecuta la funcion "setup" una vez
- * 6. Implementar > Nueva implementacion > Aplicacion web
+ * 6. Pon el MISMO TOKEN en la variable TOKEN (abajo) y en frontend/.env como VITE_TOKEN
+ * 7. Implementar > Nueva implementacion > Aplicacion web
  *    - Ejecutar como: Yo
  *    - Quien tiene acceso: Cualquier usuario
  *    - Dale a Implementar y acepta permisos
- * 7. Copia la URL (termina en /exec) y pegalo en frontend/src/config.js
+ * 8. Copia la URL (termina en /exec) y pegalo en frontend/src/config.js
  */
 
 /* ============================================================
@@ -26,6 +27,23 @@ var ADMIN_EMAILS = [
   'segundo-correo@gmail.com'       // Segundo correo destino (cambialo)
 ];
 var HOJA_REGISTROS = 'Registros';
+
+/* ============================================================
+   SEGURIDAD - TOKEN COMPARTIDO
+   La app manda este token en cada peticion. Si el atacante no
+   lo conoce, el script rechaza la llamada.
+   Usa un valor largo y dificil de adivinar.
+   DEBE ser igual al VITE_TOKEN en frontend/.env
+   ============================================================ */
+var TOKEN = '4ee89cf1a2116437b2d103f2387d96e02ac9caf6dfa766a9c0d876220b9d36b5';
+
+/* Origenes permitidos (origen exacto desde donde se llama la app).
+   Ajusta segun donde estes publicando (https o localhost). */
+var ORIGENES_PERMITIDOS = [
+  'https://seguridadindrustrial.github.io',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+];
 
 /* ============================================================
    CONFIGURACION INICIAL (ejecutar 1 vez)
@@ -40,12 +58,44 @@ function setup() {
 }
 
 /* ============================================================
+   SEGURIDAD
+   ============================================================ */
+function tieneAcceso_(e) {
+  // 1) Debe traer el token correcto
+  var tokEnviado = (e && e.parameter && e.parameter.token) ||
+                   (e && e.postData && e.postData.contents && extraerToken_(e.postData.contents));
+  if (!tokEnviado || tokEnviado !== TOKEN) {
+    return false;
+  }
+
+  // 2) El origen debe estar permitido (reduce abuso desde otros sitios)
+  var origen = e && e.parameter && e.parameter.origen;
+  if (origen && ORIGENES_PERMITIDOS.indexOf(origen) === -1) {
+    return false;
+  }
+
+  return true;
+}
+
+function extraerToken_(json) {
+  try {
+    var p = JSON.parse(json);
+    return p && p.token;
+  } catch (err) {
+    return null;
+  }
+}
+
+/* ============================================================
    WEB APP - GET (leer historial)
    Se llama desde el frontend asi:
-     GET https://script-url/exec?accion=listar
+     GET https://script-url/exec?accion=listar&token=TU_TOKEN&origen=http...
    ============================================================ */
 function doGet(e) {
   try {
+    if (!tieneAcceso_(e)) {
+      return jsonResponse_({ error: 'No autorizado' }, 403);
+    }
     ensureSheet_(HOJA_REGISTROS, [
       'fecha', 'tipo', 'id', 'usuario', 'usuario_email',
       'productos', 'cantidad', 'destino', 'urgencia', 'notas',
@@ -70,6 +120,9 @@ function doGet(e) {
    ============================================================ */
 function doPost(e) {
   try {
+    if (!tieneAcceso_(e)) {
+      return jsonResponse_({ error: 'No autorizado' }, 403);
+    }
     ensureSheet_(HOJA_REGISTROS, [
       'fecha', 'tipo', 'id', 'usuario', 'usuario_email',
       'productos', 'cantidad', 'destino', 'urgencia', 'notas',
@@ -288,8 +341,12 @@ function fechaLegible_(date) {
   return date.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
 }
 
-function jsonResponse_(obj) {
-  return ContentService
+function jsonResponse_(obj, status) {
+  var out = ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+  if (status) {
+    out.setStatusCode(status);
+  }
+  return out;
 }

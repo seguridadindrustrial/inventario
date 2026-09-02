@@ -1,4 +1,4 @@
-import { SCRIPT_URL } from './config';
+import { SCRIPT_URL, SCRIPT_TOKEN } from './config';
 
 export function setAuth(user) {
   localStorage.setItem('user', JSON.stringify(user));
@@ -13,8 +13,16 @@ export function getUser() {
   return u ? JSON.parse(u) : null;
 }
 
+function originActual() {
+  return typeof window !== 'undefined' ? window.location.origin : '';
+}
+
 async function fetchScript(params) {
-  const qs = new URLSearchParams(params).toString();
+  const qs = new URLSearchParams({
+    ...params,
+    token: SCRIPT_TOKEN,
+    origen: originActual()
+  }).toString();
   const res = await fetch(`${SCRIPT_URL}?${qs}`);
   return res.json();
 }
@@ -23,7 +31,11 @@ async function postScript(payload) {
   const res = await fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      token: SCRIPT_TOKEN,
+      origen: originActual()
+    }),
     mode: 'cors'
   });
   return res.json();
