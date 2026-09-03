@@ -1,9 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { listarHistorial, getUser } from '../api';
 
+function claseUrgencia(u) {
+  const v = (u || 'normal').toLowerCase();
+  if (v === 'urgente') return 'row-urgente';
+  if (v === 'alta') return 'row-alta';
+  return 'row-normal';
+}
+
 export default function Historial() {
   const user = getUser();
-  const [segment, setSegment] = useState('pedidos');
+  const [segment, setSegment] = useState('todo');
   const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todo');
@@ -49,26 +56,26 @@ export default function Historial() {
   function applyFilters(items) {
     const { from, to } = getFilterInterval();
     let result = items.filter((it) => {
-      const d = new Date(it.fecha);
+      const d = new Date(it.fecha_hora || 0);
       return d >= from && d <= to;
     });
 
     if (search.trim()) {
       const s = search.toLowerCase();
-      result = result.filter((it) => {
-        const text = it.tipo === 'pedido'
-          ? `${(it.productos || []).map((p) => p.producto).join(' ')} ${it.destino} ${it.urgencia} ${it.notas || ''}`
-          : `${it.objeto} ${it.descripcion}`;
-        return text.toLowerCase().includes(s);
-      });
+      result = result.filter((it) =>
+        `${it.articulo || ''} ${it.id} ${it.zona || ''} ${it.nota || ''}`.toLowerCase().includes(s)
+      );
     }
     return result;
   }
 
   const filtered = useMemo(() => applyFilters(all), [all, filter, fechaDesde, fechaHasta, search]);
 
-  const pedidos = filtered.filter((r) => r.tipo === 'pedido');
-  const reportes = filtered.filter((r) => r.tipo === 'reporte');
+  const countT = (t) => filtered.filter((r) => r.tipo === t).length;
+
+  const visibles = segment === 'todo'
+    ? filtered
+    : filtered.filter((r) => r.tipo === segment);
 
   return (
     <div>
@@ -98,83 +105,55 @@ export default function Historial() {
       </div>
 
       <div className="tabs">
-        <button className={segment === 'pedidos' ? 'tab active' : 'tab'} onClick={() => setSegment('pedidos')}>
-          📋 Pedidos ({pedidos.length})
+        <button className={segment === 'todo' ? 'tab active' : 'tab'} onClick={() => setSegment('todo')}>
+          📋 Todo ({filtered.length})
         </button>
-        <button className={segment === 'reportes' ? 'tab active' : 'tab'} onClick={() => setSegment('reportes')}>
-          ⚠️ Reportes ({reportes.length})
+        <button className={segment === 'pedido' ? 'tab active' : 'tab'} onClick={() => setSegment('pedido')}>
+          📦 Pedidos ({countT('pedido')})
         </button>
+        <button className={segment === 'daño' ? 'tab active' : 'tab'} onClick={() => setSegment('daño')}>
+          ⚠️ Daños ({countT('daño')})
+        </button>
+      </div>
+
+      <div className="legend">
+        <span className="legend-item row-urgente">Urgente</span>
+        <span className="legend-item row-alta">Alta</span>
+        <span className="legend-item row-normal">Normal</span>
       </div>
 
       {error && <p className="error">Error al cargar: {error} — ¿Configuraste la URL en config.js?</p>}
       {loading && <p className="muted">Cargando historial...</p>}
       {!loading && !error && filtered.length === 0 && <p className="muted">No hay registros que coincidan.</p>}
 
-      {segment === 'pedidos' && pedidos.length > 0 && (
+      {!loading && !error && visibles.length > 0 && (
         <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Productos</th>
-                <th>Destino</th>
+                <th>Tipo</th>
+                <th>Artículo</th>
+                <th>Cantidad</th>
+                <th>Zona</th>
                 <th>Urgencia</th>
-                <th>Notas</th>
-                <th>Quién</th>
+                <th>Nota</th>
                 <th>Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {pedidos.map((o) => (
-                <tr key={o.id}>
+              {visibles.map((o, i) => (
+                <tr key={i} className={claseUrgencia(o.urgencia)}>
                   <td>{o.id}</td>
+                  <td>{o.tipo}</td>
+                  <td>{o.articulo || '—'}</td>
+                  <td>{o.cantidad || '—'}</td>
+                  <td>{o.zona || '—'}</td>
                   <td>
-                    <ul className="mini-list">
-                      {(o.productos || []).map((p, i) => (
-                        <li key={i}>{p.producto} <b>x{p.cantidad}</b></li>
-                      ))}
-                    </ul>
+                    <span className={`badge urgencia-${(o.urgencia || 'normal').toLowerCase()}`}>{o.urgencia || 'normal'}</span>
                   </td>
-                  <td>{o.destino}</td>
-                  <td>
-                    <span className={`badge urgencia-${o.urgencia || 'normal'}`}>{o.urgencia || 'normal'}</span>
-                  </td>
-                  <td>{o.notas || '—'}</td>
-                  <td>{o.usuario || '—'}</td>
-                  <td>{new Date(o.fecha).toLocaleString('es-MX')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {segment === 'reportes' && reportes.length > 0 && (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Objeto</th>
-                <th>Descripción</th>
-                <th>Foto</th>
-                <th>Quién</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportes.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{r.objeto}</td>
-                  <td>{r.descripcion}</td>
-                  <td>
-                    {r.foto ? (
-                      <a href={`data:image/jpeg;base64,${r.foto}`} target="_blank" rel="noreferrer">Ver foto</a>
-                    ) : '—'}
-                  </td>
-                  <td>{r.usuario || '—'}</td>
-                  <td>{new Date(r.fecha).toLocaleString('es-MX')}</td>
+                  <td>{o.nota || '—'}</td>
+                  <td>{new Date(o.fecha_hora).toLocaleString('es-MX')}</td>
                 </tr>
               ))}
             </tbody>

@@ -38,10 +38,9 @@ var HOJA_REGISTROS = 'Registros';
 
 /* Columnas que se guardaran en cada hoja (encabezados).
    La foto NO se guarda en ninguna hoja: solo va adjunta al correo. */
-var COL_PEDIDOS = ['fecha', 'id', 'usuario', 'usuario_email', 'productos', 'cantidad', 'destino', 'urgencia', 'notas', 'estado'];
-var COL_DANOS = ['fecha', 'id', 'usuario', 'usuario_email', 'objeto', 'descripcion', 'estado'];
-/* Registros es la union de todas las columnas (resumen), sin foto. */
-var COL_REGISTROS = ['fecha', 'tipo', 'id', 'usuario', 'usuario_email', 'productos', 'cantidad', 'destino', 'urgencia', 'notas', 'objeto', 'descripcion', 'estado'];
+var COL_PEDIDOS = ['fecha_hora', 'id', 'usuario', 'tipo', 'articulo', 'cantidad', 'zona', 'urgencia', 'nota'];
+var COL_DANOS = ['fecha_hora', 'id', 'usuario', 'tipo', 'articulo', 'zona', 'urgencia', 'nota'];
+var COL_REGISTROS = ['fecha_hora', 'id', 'tipo', 'articulo', 'cantidad', 'zona', 'urgencia', 'nota'];
 
 /* ============================================================
    SEGURIDAD - TOKEN COMPARTIDO
@@ -125,7 +124,11 @@ function doGet(e) {
    {
      accion: 'nuevo',
      tipo: 'pedido' | 'reporte',
-     datos: { productos:[{producto,cantidad}], destino, urgencia, notas, [objeto, descripcion, foto] },
+     datos: {
+       // pedido:  productos:[{producto,cantidad}], zona, urgencia, nota
+       // reporte: objeto, zona, urgencia, nota, descripcion, [foto]
+       zona, urgencia
+     },
      usuario: { nombre, email, role }
    }
    ============================================================ */
@@ -146,17 +149,23 @@ function doPost(e) {
     var tipo = payload.tipo;
     var datos = payload.datos || {};
     var usuario = payload.usuario || { nombre: 'Usuario', email: '', role: 'user' };
-    var fecha = new Date().toISOString();
+    var fecha = fechaHoraActual_();
 
-    // El id se calcula sobre la hoja de historial maestro (columna C = id)
-    var id = nextId_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HOJA_REGISTROS), 3);
+    // El id se calcula sobre la columna B de la hoja Registros (id)
+    var id = nextId_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HOJA_REGISTROS), 2);
 
-    // 1) Hoja dedicada (Pedidos o Daños)
+    // 1) Hoja dedicada (Pedidos o Daños): una fila por articulo
     var hojaDedicada = tipo === 'pedido' ? HOJA_PEDIDOS : HOJA_DANOS;
-    appendToSheet_(hojaDedicada, buildDedicatedRow_(tipo, id, fecha, datos, usuario));
+    var filasDedicadas = buildDedicatedRows_(tipo, id, fecha, datos, usuario);
+    for (var k = 0; k < filasDedicadas.length; k++) {
+      appendToSheet_(hojaDedicada, filasDedicadas[k]);
+    }
 
-    // 2) Hoja Registros (resumen maestro)
-    appendToSheet_(HOJA_REGISTROS, buildRegistroRow_(tipo, id, fecha, datos, usuario));
+    // 2) Hoja Registros (resumen maestro): una fila por articulo
+    var filasRegistro = buildRegistroRows_(tipo, id, fecha, datos, usuario);
+    for (var m = 0; m < filasRegistro.length; m++) {
+      appendToSheet_(HOJA_REGISTROS, filasRegistro[m]);
+    }
 
     var enviado = tipo === 'pedido'
       ? sendPedidoEmail_(id, datos, usuario)
@@ -204,9 +213,9 @@ function sendPedidoEmail_(id, d, usuario) {
     '<table cellpadding="6" style="border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif">' +
     filaHtml_('De', usuario.nombre + ' (' + usuario.email + ')') +
     filaHtml_('Fecha', fechaLegible_(new Date())) +
-    filaHtml_('Destino', d.destino || '-') +
+    filaHtml_('Zona', d.zona || '-') +
     filaHtml_('Urgencia', d.urgencia || 'normal') +
-    filaHtml_('Notas', d.notas || '-') +
+    filaHtml_('Nota', d.nota || '-') +
     '</table>';
 
   return sendEmail_(subject, html);
@@ -220,7 +229,10 @@ function sendReporteEmail_(id, d, usuario) {
     filaHtml_('No.', String(id)) +
     filaHtml_('De', usuario.nombre + ' (' + usuario.email + ')') +
     filaHtml_('Objeto', d.objeto || '-') +
-    filaHtml_('Descripcion', d.descripcion || '-') +
+    filaHtml_('Zona', d.zona || '-') +
+    filaHtml_('Urgencia', d.urgencia || 'normal') +
+    filaHtml_('Nota', d.nota || '-') +
+    filaHtml_('Descripción', d.descripcion || '-') +
     filaHtml_('Fecha', fechaLegible_(new Date())) +
     '</table>';
 
@@ -255,65 +267,55 @@ function sendEmail_(subject, html, adjuntos) {
 /* ============================================================
    UTILIDADES
    ============================================================ */
-/* Construye la fila para la hoja dedicada (Pedidos o Daños). */
-function buildDedicatedRow_(tipo, id, fecha, d, usuario) {
+/* Construye las filas para la hoja dedicada (una por articulo).
+   Pedidos: fecha_hora, id, usuario, tipo, articulo, cantidad, zona, urgencia, nota
+   Daños:   fecha_hora, id, usuario, tipo, articulo, zona, urgencia, nota            */
+function buildDedicatedRows_(tipo, id, fecha, d, usuario) {
+  var filas = [];
   if (tipo === 'pedido') {
-    // COL_PEDIDOS: fecha, id, usuario, usuario_email, productos, cantidad, destino, urgencia, notas, estado
-    var piezas = 0;
-    var partes = [];
     var lista = d.productos || [];
     for (var i = 0; i < lista.length; i++) {
       var p = lista[i];
       var cant = Number(p.cantidad) || 0;
-      piezas += cant;
-      partes.push(p.producto + ' x' + cant);
+      filas.push([
+        fecha, id, usuario.nombre || '', 'pedido',
+        p.producto, cant,
+        d.zona || '', d.urgencia || 'normal', d.nota || ''
+      ]);
     }
-    return [
-      fecha, id, usuario.nombre || '', usuario.email || '',
-      partes.join(', '), piezas ? String(piezas) : '',
-      d.destino || '', d.urgencia || 'normal', d.notas || '',
-      'pendiente'
-    ];
+    return filas;
   }
-  // COL_DANOS: fecha, id, usuario, usuario_email, objeto, descripcion, estado
-  return [
-    fecha, id, usuario.nombre || '', usuario.email || '',
-    d.objeto || '', d.descripcion || '',
-    'pendiente'
-  ];
+  // Daños (sin cantidad)
+  filas.push([
+    fecha, id, usuario.nombre || '', 'daño',
+    d.objeto || '',
+    d.zona || '', d.urgencia || 'normal', d.nota || ''
+  ]);
+  return filas;
 }
 
-/* Construye la fila para la hoja Registros (resumen de todo). */
-function buildRegistroRow_(tipo, id, fecha, d, usuario) {
-  var productosTexto = '';
-  var cantidadTotal = '';
-  var objeto = '';
-  var descripcion = '';
+/* Construye las filas para la hoja Registros (una por articulo).
+   Registros: fecha_hora, id, tipo, articulo, cantidad, zona, urgencia, nota   */
+function buildRegistroRows_(tipo, id, fecha, d, usuario) {
+  var filas = [];
   if (tipo === 'pedido') {
     var lista = d.productos || [];
-    var piezas = 0;
-    var partes = [];
     for (var i = 0; i < lista.length; i++) {
       var p = lista[i];
       var cant = Number(p.cantidad) || 0;
-      piezas += cant;
-      partes.push(p.producto + ' x' + cant);
+      filas.push([
+        fecha, id, 'pedido', p.producto, cant,
+        d.zona || '', d.urgencia || 'normal', d.nota || ''
+      ]);
     }
-    productosTexto = partes.join(', ');
-    cantidadTotal = piezas ? String(piezas) : '';
   } else {
-    objeto = d.objeto || '';
-    descripcion = d.descripcion || '';
+    filas.push([
+      fecha, id, 'daño', d.objeto || '',
+      '',
+      d.zona || '', d.urgencia || 'normal', d.nota || ''
+    ]);
   }
-
-  // COL_REGISTROS: fecha, tipo, id, usuario, usuario_email, productos, cantidad, destino, urgencia, notas, objeto, descripcion, estado
-  return [
-    fecha, tipo, id, usuario.nombre || '', usuario.email || '',
-    productosTexto, cantidadTotal,
-    d.destino || '', d.urgencia || 'normal', d.notas || '',
-    objeto, descripcion,
-    'pendiente'
-  ];
+  return filas;
 }
 
 function appendToSheet_(name, fila) {
@@ -350,14 +352,6 @@ function getSheetData_(name) {
     for (var j = 0; j < headers.length; j++) {
       obj[headers[j]] = values[i][j];
     }
-    // Convierte "Jarron x2, Alfombra x1" en un arreglo para el historial
-    if (obj.tipo === 'pedido' && obj.productos) {
-      obj.productos = String(obj.productos).split(/,\s*/).map(function (txt) {
-        var m = txt.match(/^(.*?)\s*x(\d+)$/i);
-        if (m) return { producto: m[1].trim(), cantidad: m[2] };
-        return { producto: txt.trim(), cantidad: '1' };
-      });
-    }
     rows.push(obj);
   }
   return rows;
@@ -382,6 +376,24 @@ function filaHtml_(campo, valor) {
 
 function fechaLegible_(date) {
   return date.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+}
+
+/* Fecha y hora juntas, legibles y exactas (America/Mexico_City).
+   Formato YYYY-MM-DD HH:MM:SS: se ve bien en Excel, se ordena bien y
+   se puede convertir con new Date() en el frontend. */
+function fechaHoraActual_() {
+  var d = new Date();
+  var opts = {
+    timeZone: 'America/Mexico_City', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+  var p = new Intl.DateTimeFormat('en-CA', opts).formatToParts(d);
+  var map = {};
+  for (var i = 0; i < p.length; i++) {
+    if (p[i].type !== 'literal') map[p[i].type] = p[i].value;
+  }
+  return map.year + '-' + map.month + '-' + map.day + ' ' + map.hour + ':' + map.minute + ':' + map.second;
 }
 
 function jsonResponse_(obj, status) {

@@ -117,27 +117,7 @@ export const CATEGORIAS = [
   }
 ];
 
-export const UBICACIONES = [
-  'Sala principal',
-  'Sala secundaria',
-  'Comedor',
-  'Cocina',
-  'Recibidor',
-  'Pasillo',
-  'Escalera',
-  'Recámara 1',
-  'Recámara 2',
-  'Recámara 3',
-  'Estudio',
-  'Baño principal',
-  'Baño visitas',
-  'Terraza',
-  'Balcón',
-  'Patio',
-  'Jardín',
-  'Sótano',
-  'Azotea',
-  'Bodega',
-  'Garaje',
-  'Sala de degustación'
+export const ZONAS = [
+  'PISO 2',
+  'SALA DE DEGUSTACIÓN'
 ];

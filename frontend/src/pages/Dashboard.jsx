@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
-import { CATEGORIAS, UBICACIONES } from '../catalog';
+import { CATEGORIAS, ZONAS } from '../catalog';
 import Combobox from '../components/Combobox';
 import Camera from '../components/Camera';
 
@@ -42,10 +42,10 @@ export default function Dashboard() {
   const user = getUser();
 
   const [items, setItems] = useState([NUEVO_ITEM()]);
-  const [destino, setDestino] = useState('');
+  const [zona, setZona] = useState('');
   const [urgencia, setUrgencia] = useState('normal');
   const [notas, setNotas] = useState('');
-  const [reporteForm, setReporteForm] = useState({ objeto: '', descripcion: '', foto: null });
+  const [reporteForm, setReporteForm] = useState({ objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
 
   function updateItem(i, campo, valor) {
     setItems(items.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
@@ -77,17 +77,17 @@ export default function Dashboard() {
     setError(''); setWaLink('');
     const validos = items.filter((it) => it.producto.trim() && Number(it.cantidad) > 0);
     if (validos.length === 0) return setError('Agrega al menos un producto con su cantidad.');
-    if (!destino) return setError('Elige una ubicación de destino.');
+    if (!zona) return setError('Elige una zona.');
 
-    const datos = { productos: validos, destino, urgencia, notas };
+    const datos = { productos: validos, zona, urgencia, nota: notas };
     try {
       const res = await crearPedido(datos, user);
       const lista = validos.map((p) => `• ${p.producto} x${p.cantidad}`).join('\n');
-      const texto = `📦 *NUEVO PEDIDO ${urgencia.toUpperCase()}*\n\n👤 De: ${user.nombre}\n🛒 Productos:\n${lista}\n📍 Destino: ${destino}\n📝 Notas: ${notas || 'Sin notas'}`;
+      const texto = `📦 *NUEVO PEDIDO ${urgencia.toUpperCase()}*\n\n👤 De: ${user.nombre}\n🛒 Productos:\n${lista}\n📍 Zona: ${zona}\n📝 Nota: ${notas || 'Sin nota'}`;
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setOrderMsg(`${res.message} (No. ${res.id})`);
       setItems([NUEVO_ITEM()]);
-      setDestino('');
+      setZona('');
       setUrgencia('normal');
       setNotas('');
     } catch (err) {
@@ -98,7 +98,14 @@ export default function Dashboard() {
   async function submitReporte(e) {
     e.preventDefault();
     setError(''); setWaLink('');
-    const datos = { objeto: reporteForm.objeto, descripcion: reporteForm.descripcion };
+    if (!reporteForm.zona) return setError('Elige una zona.');
+    const datos = {
+      objeto: reporteForm.objeto,
+      zona: reporteForm.zona,
+      urgencia: reporteForm.urgencia,
+      nota: reporteForm.nota,
+      descripcion: reporteForm.descripcion
+    };
     if (reporteForm.foto) {
       try {
         datos.foto = sinPrefijo(reporteForm.foto); // base64 completa (va adjunta SOLO al correo, no al Excel)
@@ -109,11 +116,11 @@ export default function Dashboard() {
     }
     try {
       const res = await crearReporte(datos, user);
-      let texto = `⚠️ *REPORTE DE DAÑO*\n\n👤 De: ${user.nombre}\n🪑 Objeto: ${datos.objeto}\n📝 Descripción: ${datos.descripcion}`;
+      let texto = `⚠️ *REPORTE DE DAÑO*\n\n👤 De: ${user.nombre}\n🪑 Objeto: ${datos.objeto}\n📍 Zona: ${datos.zona}\n⚡ Urgencia: ${datos.urgencia}\n📝 Nota: ${datos.nota || 'Sin nota'}`;
       if (datos.foto) texto += '\n📷 Incluye foto';
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setReportMsg(`${res.message} (No. ${res.id})`);
-      setReporteForm({ objeto: '', descripcion: '', foto: null });
+      setReporteForm({ objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
       e.target.reset();
     } catch (err) {
       setError(err.message);
@@ -162,12 +169,12 @@ export default function Dashboard() {
             </div>
           ))}
 
-          <label>📍 Ubicación de destino</label>
+          <label>📍 Zona</label>
           <Combobox
-            options={UBICACIONES}
-            value={destino}
-            onChange={setDestino}
-            placeholder="Busca y elige la ubicación..."
+            options={ZONAS}
+            value={zona}
+            onChange={setZona}
+            placeholder="Busca y elige la zona..."
           />
 
           <label>⚡ Urgencia</label>
@@ -195,6 +202,21 @@ export default function Dashboard() {
             onChange={(v) => setReporteForm({ ...reporteForm, objeto: v })}
             placeholder="Busca y elige el objeto..."
           />
+          <label>📍 Zona</label>
+          <Combobox
+            options={ZONAS}
+            value={reporteForm.zona}
+            onChange={(v) => setReporteForm({ ...reporteForm, zona: v })}
+            placeholder="Elige la zona..."
+          />
+          <label>⚡ Urgencia</label>
+          <select value={reporteForm.urgencia} onChange={(e) => setReporteForm({ ...reporteForm, urgencia: e.target.value })}>
+            <option value="normal">Normal</option>
+            <option value="alta">Alta</option>
+            <option value="urgente">Urgente</option>
+          </select>
+          <label>📝 Nota</label>
+          <textarea value={reporteForm.nota} onChange={(e) => setReporteForm({ ...reporteForm, nota: e.target.value })} placeholder="Nota adicional (opcional)" />
           <label>Descripción del daño</label>
           <textarea value={reporteForm.descripcion} onChange={(e) => setReporteForm({ ...reporteForm, descripcion: e.target.value })} required placeholder="Describe qué ocurrió" />
 
