@@ -358,7 +358,7 @@ button:hover {
 .cat-seccion {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   margin-top: 0.75rem;
   background: #fafafa;
 }
@@ -366,11 +366,28 @@ button:hover {
 .cat-seccion-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cat-seccion-arrow {
+  display: inline-block;
+  font-size: 0.9rem;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.cat-seccion-arrow.open {
+  transform: rotate(90deg);
 }
 
 .cat-seccion-titulo {
+  flex: 1;
   font-weight: 700;
   font-size: 1rem;
   color: #111827;
@@ -385,13 +402,28 @@ button:hover {
   border-radius: 999px;
 }
 
+.cat-seccion-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.resumen-item {
+  font-size: 0.8rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
 .cat-seccion-buscar {
   width: 100%;
   padding: 0.5rem 0.7rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+  margin: 0.5rem 0;
 }
 
 .cat-seccion-lista {
