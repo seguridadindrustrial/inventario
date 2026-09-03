@@ -43,16 +43,18 @@ export default function CategoryPicker({ groups = [], categoria = '', onCategori
 
   return (
     <div className="category-picker" ref={wrapRef}>
-      <select
-        className="cat-select"
-        value={categoria}
-        onChange={(e) => selectCategoria(e.target.value)}
-      >
-        <option value="">— Elige una categoría —</option>
+      <div className="cat-chips">
         {groups.map((g) => (
-          <option key={g.categoria} value={g.categoria}>{g.categoria}</option>
+          <button
+            key={g.categoria}
+            type="button"
+            className={'cat-chip' + (categoria === g.categoria ? ' active' : '')}
+            onClick={() => selectCategoria(categoria === g.categoria ? '' : g.categoria)}
+          >
+            {g.categoria}
+          </button>
         ))}
-      </select>
+      </div>
 
       {categoria && (
         <div className="combobox">
