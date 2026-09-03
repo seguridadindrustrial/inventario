@@ -26,7 +26,22 @@ var ADMIN_EMAILS = [
   'carolinablanco8419@gmail.com',  // Primer correo destino
   'segundo-correo@gmail.com'       // Segundo correo destino (cambialo)
 ];
+
+/* Hojas de la hoja de calculo.
+   - Pedidos:   cada pedido
+   - Daños:     cada reporte de equipo dañado
+   - Registros: historial maestro que resume todo (+ estado)
+   Las columnas las puedo ajustar cuando me des la lista exacta. */
+var HOJA_PEDIDOS = 'Pedidos';
+var HOJA_DANOS = 'Daños';
 var HOJA_REGISTROS = 'Registros';
+
+/* Columnas que se guardaran en cada hoja (encabezados).
+   La foto NO se guarda en ninguna hoja: solo va adjunta al correo. */
+var COL_PEDIDOS = ['fecha', 'id', 'usuario', 'usuario_email', 'productos', 'cantidad', 'destino', 'urgencia', 'notas', 'estado'];
+var COL_DANOS = ['fecha', 'id', 'usuario', 'usuario_email', 'objeto', 'descripcion', 'estado'];
+/* Registros es la union de todas las columnas (resumen), sin foto. */
+var COL_REGISTROS = ['fecha', 'tipo', 'id', 'usuario', 'usuario_email', 'productos', 'cantidad', 'destino', 'urgencia', 'notas', 'objeto', 'descripcion', 'estado'];
 
 /* ============================================================
    SEGURIDAD - TOKEN COMPARTIDO
@@ -40,7 +55,7 @@ var TOKEN = '4ee89cf1a2116437b2d103f2387d96e02ac9caf6dfa766a9c0d876220b9d36b5';
 /* Origenes permitidos (origen exacto desde donde se llama la app).
    Ajusta segun donde estes publicando (https o localhost). */
 var ORIGENES_PERMITIDOS = [
-  'https://seguridadindrustrial.github.io',
+  'https://inventario-omega-dusky.vercel.app',  // tu app en Vercel
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];
@@ -49,12 +64,10 @@ var ORIGENES_PERMITIDOS = [
    CONFIGURACION INICIAL (ejecutar 1 vez)
    ============================================================ */
 function setup() {
-  ensureSheet_(HOJA_REGISTROS, [
-    'fecha', 'tipo', 'id', 'usuario', 'usuario_email',
-    'productos', 'cantidad', 'destino', 'urgencia', 'notas',
-    'objeto', 'descripcion', 'foto', 'estado'
-  ]);
-  Logger.log('Listo. Revisa la hoja "Registros".');
+  ensureSheet_(HOJA_PEDIDOS, COL_PEDIDOS);
+  ensureSheet_(HOJA_DANOS, COL_DANOS);
+  ensureSheet_(HOJA_REGISTROS, COL_REGISTROS);
+  Logger.log('Listo. Revisa las hojas "' + HOJA_PEDIDOS + '", "' + HOJA_DANOS + '" y "' + HOJA_REGISTROS + '".');
 }
 
 /* ============================================================
@@ -96,11 +109,9 @@ function doGet(e) {
     if (!tieneAcceso_(e)) {
       return jsonResponse_({ error: 'No autorizado' }, 403);
     }
-    ensureSheet_(HOJA_REGISTROS, [
-      'fecha', 'tipo', 'id', 'usuario', 'usuario_email',
-      'productos', 'cantidad', 'destino', 'urgencia', 'notas',
-      'objeto', 'descripcion', 'foto', 'estado'
-    ]);
+    ensureSheet_(HOJA_PEDIDOS, COL_PEDIDOS);
+    ensureSheet_(HOJA_DANOS, COL_DANOS);
+    ensureSheet_(HOJA_REGISTROS, COL_REGISTROS);
     var registros = getSheetData_(HOJA_REGISTROS);
     return jsonResponse_({ registros: registros });
   } catch (err) {
@@ -123,11 +134,9 @@ function doPost(e) {
     if (!tieneAcceso_(e)) {
       return jsonResponse_({ error: 'No autorizado' }, 403);
     }
-    ensureSheet_(HOJA_REGISTROS, [
-      'fecha', 'tipo', 'id', 'usuario', 'usuario_email',
-      'productos', 'cantidad', 'destino', 'urgencia', 'notas',
-      'objeto', 'descripcion', 'foto', 'estado'
-    ]);
+    ensureSheet_(HOJA_PEDIDOS, COL_PEDIDOS);
+    ensureSheet_(HOJA_DANOS, COL_DANOS);
+    ensureSheet_(HOJA_REGISTROS, COL_REGISTROS);
 
     var payload = e && e.postData && e.postData.contents ? JSON.parse(e.postData.contents) : {};
     if (!payload || payload.accion !== 'nuevo') {
@@ -137,13 +146,17 @@ function doPost(e) {
     var tipo = payload.tipo;
     var datos = payload.datos || {};
     var usuario = payload.usuario || { nombre: 'Usuario', email: '', role: 'user' };
-
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HOJA_REGISTROS);
-    var id = nextId_(sheet, 3); // columna C = id
     var fecha = new Date().toISOString();
 
-    var fila = buildRow_(tipo, id, fecha, datos, usuario);
-    sheet.appendRow(fila);
+    // El id se calcula sobre la hoja de historial maestro (columna C = id)
+    var id = nextId_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HOJA_REGISTROS), 3);
+
+    // 1) Hoja dedicada (Pedidos o Daños)
+    var hojaDedicada = tipo === 'pedido' ? HOJA_PEDIDOS : HOJA_DANOS;
+    appendToSheet_(hojaDedicada, buildDedicatedRow_(tipo, id, fecha, datos, usuario));
+
+    // 2) Hoja Registros (resumen maestro)
+    appendToSheet_(HOJA_REGISTROS, buildRegistroRow_(tipo, id, fecha, datos, usuario));
 
     var enviado = tipo === 'pedido'
       ? sendPedidoEmail_(id, datos, usuario)
@@ -242,9 +255,40 @@ function sendEmail_(subject, html, adjuntos) {
 /* ============================================================
    UTILIDADES
    ============================================================ */
-function buildRow_(tipo, id, fecha, d, usuario) {
+/* Construye la fila para la hoja dedicada (Pedidos o Daños). */
+function buildDedicatedRow_(tipo, id, fecha, d, usuario) {
+  if (tipo === 'pedido') {
+    // COL_PEDIDOS: fecha, id, usuario, usuario_email, productos, cantidad, destino, urgencia, notas, estado
+    var piezas = 0;
+    var partes = [];
+    var lista = d.productos || [];
+    for (var i = 0; i < lista.length; i++) {
+      var p = lista[i];
+      var cant = Number(p.cantidad) || 0;
+      piezas += cant;
+      partes.push(p.producto + ' x' + cant);
+    }
+    return [
+      fecha, id, usuario.nombre || '', usuario.email || '',
+      partes.join(', '), piezas ? String(piezas) : '',
+      d.destino || '', d.urgencia || 'normal', d.notas || '',
+      'pendiente'
+    ];
+  }
+  // COL_DANOS: fecha, id, usuario, usuario_email, objeto, descripcion, estado
+  return [
+    fecha, id, usuario.nombre || '', usuario.email || '',
+    d.objeto || '', d.descripcion || '',
+    'pendiente'
+  ];
+}
+
+/* Construye la fila para la hoja Registros (resumen de todo). */
+function buildRegistroRow_(tipo, id, fecha, d, usuario) {
   var productosTexto = '';
   var cantidadTotal = '';
+  var objeto = '';
+  var descripcion = '';
   if (tipo === 'pedido') {
     var lista = d.productos || [];
     var piezas = 0;
@@ -257,27 +301,26 @@ function buildRow_(tipo, id, fecha, d, usuario) {
     }
     productosTexto = partes.join(', ');
     cantidadTotal = piezas ? String(piezas) : '';
+  } else {
+    objeto = d.objeto || '';
+    descripcion = d.descripcion || '';
   }
 
-  var row = [
-    fecha,
-    tipo,
-    id,
-    usuario.nombre || '',
-    usuario.email || '',
-    // productos, cantidad, destino, urgencia, notas
-    productosTexto,
-    cantidadTotal,
-    d.destino || '',
-    d.urgencia || 'normal',
-    d.notas || '',
-    // objeto, descripcion, foto, estado
-    d.objeto || '',
-    d.descripcion || '',
-    ((d.foto_min || d.foto) || '').substring(0, 40000),
+  // COL_REGISTROS: fecha, tipo, id, usuario, usuario_email, productos, cantidad, destino, urgencia, notas, objeto, descripcion, estado
+  return [
+    fecha, tipo, id, usuario.nombre || '', usuario.email || '',
+    productosTexto, cantidadTotal,
+    d.destino || '', d.urgencia || 'normal', d.notas || '',
+    objeto, descripcion,
     'pendiente'
   ];
-  return row;
+}
+
+function appendToSheet_(name, fila) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (sheet) {
+    sheet.appendRow(fila);
+  }
 }
 
 function nextId_(sheet, col) {

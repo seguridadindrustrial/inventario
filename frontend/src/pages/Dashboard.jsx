@@ -29,23 +29,7 @@ function comprimirImagen(file, maxW = 900, maxH = 900, calidad = 0.7) {
   });
 }
 
-// Genera una miniaturla (para guardar en el Sheet sin pasarse del límite)
-function hacerMiniatura(dataURL, max = 300, calidad = 0.5) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', calidad));
-    };
-    img.onerror = () => resolve(dataURL);
-    img.src = dataURL;
-  });
-}
-
+// Genera una miniaturla (ya no se usa; la foto solo va al correo)
 const sinPrefijo = (url) => (url || '').split(',')[1] || '';
 
 export default function Dashboard() {
@@ -117,8 +101,7 @@ export default function Dashboard() {
     const datos = { objeto: reporteForm.objeto, descripcion: reporteForm.descripcion };
     if (reporteForm.foto) {
       try {
-        datos.foto = sinPrefijo(reporteForm.foto);                        // completa (va adjunta al correo)
-        datos.foto_min = sinPrefijo(await hacerMiniatura(reporteForm.foto)); // miniatura (va al Sheet)
+        datos.foto = sinPrefijo(reporteForm.foto); // base64 completa (va adjunta SOLO al correo, no al Excel)
       } catch {
         setError('No se pudo procesar la foto.');
         return;
