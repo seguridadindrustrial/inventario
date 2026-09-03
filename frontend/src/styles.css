@@ -285,6 +285,36 @@ button:hover {
   flex: none;
 }
 
+/* ---------- Selector por categoría (2 pasos) ---------- */
+.category-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.item-row .category-picker {
+  flex: 1;
+}
+
+.category-picker .cat-select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: white;
+}
+
+.category-picker .combobox input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+
 .btn-remove {
   background: #ef4444;
   width: 42px;

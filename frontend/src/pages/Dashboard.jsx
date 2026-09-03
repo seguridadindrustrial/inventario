@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
 import { CATEGORIAS, ZONAS } from '../catalog';
 import Combobox from '../components/Combobox';
+import CategoryPicker from '../components/CategoryPicker';
 import Camera from '../components/Camera';
 
-const NUEVO_ITEM = () => ({ producto: '', cantidad: '1' });
+const NUEVO_ITEM = () => ({ categoria: '', producto: '', cantidad: '1' });
 
 // Comprime una imagen (File) y devuelve un dataURL jpeg (prefijo incluido)
 function comprimirImagen(file, maxW = 900, maxH = 900, calidad = 0.7) {
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [zona, setZona] = useState('');
   const [urgencia, setUrgencia] = useState('normal');
   const [notas, setNotas] = useState('');
-  const [reporteForm, setReporteForm] = useState({ objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
+  const [reporteForm, setReporteForm] = useState({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
 
   function updateItem(i, campo, valor) {
     setItems(items.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
@@ -120,7 +121,7 @@ export default function Dashboard() {
       if (datos.foto) texto += '\n📷 Incluye foto';
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setReportMsg(`${res.message} (No. ${res.id})`);
-      setReporteForm({ objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
+      setReporteForm({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
       e.target.reset();
     } catch (err) {
       setError(err.message);
@@ -149,8 +150,10 @@ export default function Dashboard() {
 
           {items.map((it, idx) => (
             <div className="item-row" key={idx}>
-              <Combobox
+              <CategoryPicker
                 groups={CATEGORIAS}
+                categoria={it.categoria}
+                onCategoriaChange={(c) => updateItem(idx, 'categoria', c)}
                 value={it.producto}
                 onChange={(v) => updateItem(idx, 'producto', v)}
                 placeholder="Busca y elige un producto..."
@@ -196,8 +199,10 @@ export default function Dashboard() {
         <form className="card" onSubmit={submitReporte}>
           <h2>Reportar Daño</h2>
           <label>Objeto dañado</label>
-          <Combobox
+          <CategoryPicker
             groups={CATEGORIAS}
+            categoria={reporteForm.categoria}
+            onCategoriaChange={(c) => setReporteForm({ ...reporteForm, categoria: c })}
             value={reporteForm.objeto}
             onChange={(v) => setReporteForm({ ...reporteForm, objeto: v })}
             placeholder="Busca y elige el objeto..."
