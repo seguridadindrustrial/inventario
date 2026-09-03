@@ -397,11 +397,9 @@ function fechaHoraActual_() {
 }
 
 function jsonResponse_(obj, status) {
-  var out = ContentService
+  // Nota: ContentService NO soporta setStatusCode; el "status" se ignora.
+  // El frontend detecta el error por el JSON ({ error: 'No autorizado' }).
+  return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
-  if (status) {
-    out.setStatusCode(status);
-  }
-  return out;
 }
