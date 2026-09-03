@@ -325,6 +325,116 @@ button:hover {
   color: white;
 }
 
+/* ---------- Categorías (chips) en el pedido ---------- */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cat-chips .cat-chip {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cat-chips .cat-chip:hover {
+  background: #f3f4f6;
+}
+
+.cat-chips .cat-chip.active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: white;
+}
+
+/* ---------- Sección de categoría (lista con cantidades) ---------- */
+.cat-seccion {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: #fafafa;
+}
+
+.cat-seccion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.cat-seccion-titulo {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.cat-seccion-total {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.cat-seccion-buscar {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.cat-seccion-lista {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+}
+
+.cat-prod-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cat-prod-row:last-child {
+  border-bottom: none;
+}
+
+.cat-prod-row.sel {
+  background: #eff6ff;
+}
+
+.cat-prod-nombre {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.cat-prod-qty {
+  width: 70px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+
 .category-picker .combobox input {
   width: 100%;
   padding: 0.65rem 0.75rem;

@@ -3,9 +3,8 @@ import { crearPedido, crearReporte, getUser } from '../api';
 import { CATEGORIAS, ZONAS } from '../catalog';
 import Combobox from '../components/Combobox';
 import CategoryPicker from '../components/CategoryPicker';
+import CategoriaPedido from '../components/CategoriaPedido';
 import Camera from '../components/Camera';
-
-const NUEVO_ITEM = () => ({ categoria: '', producto: '', cantidad: '1' });
 
 // Comprime una imagen (File) y devuelve un dataURL jpeg (prefijo incluido)
 function comprimirImagen(file, maxW = 900, maxH = 900, calidad = 0.7) {
@@ -42,23 +41,35 @@ export default function Dashboard() {
   const [showCamera, setShowCamera] = useState(false);
   const user = getUser();
 
-  const [items, setItems] = useState([NUEVO_ITEM()]);
+  const [cats, setCats] = useState([]);                  // categorías seleccionadas
+  const [cantPorCat, setCantPorCat] = useState({});      // { categoria: { producto: cantidad } }
   const [zona, setZona] = useState('');
   const [urgencia, setUrgencia] = useState('normal');
   const [notas, setNotas] = useState('');
   const [reporteForm, setReporteForm] = useState({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
 
-  function updateItem(i, campo, valor) {
-    setItems(items.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  function getItemsCategoria(cat) {
+    const g = CATEGORIAS.find((c) => c.categoria === cat);
+    return g ? g.items : [];
   }
 
-  function addItem() {
-    setItems([...items, NUEVO_ITEM()]);
+  function toggleCategoria(cat) {
+    setCats((prev) => {
+      if (prev.includes(cat)) {
+        const quedan = prev.filter((c) => c !== cat);
+        setCantPorCat((cp) => {
+          const next = { ...cp };
+          delete next[cat];
+          return next;
+        });
+        return quedan;
+      }
+      return [...prev, cat];
+    });
   }
 
-  function removeItem(i) {
-    if (items.length === 1) return;
-    setItems(items.filter((_, idx) => idx !== i));
+  function onCantCatChange(cat, mapa) {
+    setCantPorCat((prev) => ({ ...prev, [cat]: mapa }));
   }
 
   async function onArchivo(e) {
@@ -76,7 +87,13 @@ export default function Dashboard() {
   async function submitPedido(e) {
     e.preventDefault();
     setError(''); setWaLink('');
-    const validos = items.filter((it) => it.producto.trim() && Number(it.cantidad) > 0);
+    const validos = [];
+    cats.forEach((cat) => {
+      const mapa = cantPorCat[cat] || {};
+      Object.entries(mapa).forEach(([producto, cantidad]) => {
+        validos.push({ producto, cantidad });
+      });
+    });
     if (validos.length === 0) return setError('Agrega al menos un producto con su cantidad.');
     if (!zona) return setError('Elige una zona.');
 
@@ -87,7 +104,8 @@ export default function Dashboard() {
       const texto = `📦 *NUEVO PEDIDO ${urgencia.toUpperCase()}*\n\n👤 De: ${user.nombre}\n🛒 Productos:\n${lista}\n📍 Zona: ${zona}\n📝 Nota: ${notas || 'Sin nota'}`;
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setOrderMsg(`${res.message} (No. ${res.id})`);
-      setItems([NUEVO_ITEM()]);
+      setCats([]);
+      setCantPorCat({});
       setZona('');
       setUrgencia('normal');
       setNotas('');
@@ -143,33 +161,29 @@ export default function Dashboard() {
         <form className="card card-wide" onSubmit={submitPedido}>
           <h2>Nuevo Pedido</h2>
 
-          <div className="items-header">
-            <span>🛒 Productos</span>
-            <button type="button" className="btn-add" onClick={addItem}>＋ Agregar producto</button>
+          <label>🛒 Elige las categorías de productos</label>
+          <div className="cat-chips">
+            {CATEGORIAS.filter((g) => g.items.length > 0).map((g) => (
+              <button
+                key={g.categoria}
+                type="button"
+                className={'cat-chip' + (cats.includes(g.categoria) ? ' active' : '')}
+                onClick={() => toggleCategoria(g.categoria)}
+              >
+                {g.categoria}
+              </button>
+            ))}
           </div>
 
-          {items.map((it, idx) => (
-            <div className="item-row" key={idx}>
-              <CategoryPicker
-                groups={CATEGORIAS}
-                categoria={it.categoria}
-                onCategoriaChange={(c) => updateItem(idx, 'categoria', c)}
-                value={it.producto}
-                onChange={(v) => updateItem(idx, 'producto', v)}
-                placeholder="Busca y elige un producto..."
-              />
-              <input
-                className="qty"
-                type="number"
-                min="1"
-                value={it.cantidad}
-                onChange={(e) => updateItem(idx, 'cantidad', e.target.value)}
-                title="Cantidad"
-              />
-              {items.length > 1 && (
-                <button type="button" className="btn-remove" onClick={() => removeItem(idx)}>✕</button>
-              )}
-            </div>
+          {cats.length === 0 && <p className="muted">Selecciona una o más categorías para elegir sus productos.</p>}
+
+          {cats.map((cat) => (
+            <CategoriaPedido
+              key={cat}
+              categoria={cat}
+              items={getItemsCategoria(cat)}
+              onCambio={onCantCatChange}
+            />
           ))}
 
           <label>📍 Zona</label>
