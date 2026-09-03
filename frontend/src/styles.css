@@ -417,6 +417,27 @@ button:hover {
   border-radius: 999px;
 }
 
+.cat-prod-row.sel-clic {
+  cursor: pointer;
+}
+
+.cat-prod-row.sel-clic:hover {
+  background: #f0fdf4;
+}
+
+.reporte-categorias {
+  margin-bottom: 0.25rem;
+}
+
+.seleccion-final {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #166534;
+}
+
 .cat-seccion-buscar {
   width: 100%;
   padding: 0.5rem 0.7rem;

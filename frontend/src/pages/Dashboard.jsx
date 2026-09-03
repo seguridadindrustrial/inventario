@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
 import { CATEGORIAS, ZONAS } from '../catalog';
 import Combobox from '../components/Combobox';
-import CategoryPicker from '../components/CategoryPicker';
 import CategoriaPedido from '../components/CategoriaPedido';
+import CategoriaReporte from '../components/CategoriaReporte';
 import Camera from '../components/Camera';
 
 // Comprime una imagen (File) y devuelve un dataURL jpeg (prefijo incluido)
@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [urgencia, setUrgencia] = useState('normal');
   const [notas, setNotas] = useState('');
   const [reporteForm, setReporteForm] = useState({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
+  const [reporteKey, setReporteKey] = useState(0);
 
   function getItemsCategoria(cat) {
     const g = CATEGORIAS.find((c) => c.categoria === cat);
@@ -140,6 +141,7 @@ export default function Dashboard() {
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setReportMsg(`${res.message} (No. ${res.id})`);
       setReporteForm({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
+      setReporteKey((k) => k + 1);
       e.target.reset();
     } catch (err) {
       setError(err.message);
@@ -213,13 +215,11 @@ export default function Dashboard() {
         <form className="card" onSubmit={submitReporte}>
           <h2>Reportar Daño</h2>
           <label>Objeto dañado</label>
-          <CategoryPicker
+          <CategoriaReporte
+            key={reporteKey}
             groups={CATEGORIAS}
-            categoria={reporteForm.categoria}
-            onCategoriaChange={(c) => setReporteForm({ ...reporteForm, categoria: c })}
-            value={reporteForm.objeto}
-            onChange={(v) => setReporteForm({ ...reporteForm, objeto: v })}
-            placeholder="Busca y elige el objeto..."
+            seleccion={reporteForm.objeto}
+            onSeleccion={(obj) => setReporteForm((prev) => ({ ...prev, objeto: obj }))}
           />
           <label>📍 Zona</label>
           <Combobox
