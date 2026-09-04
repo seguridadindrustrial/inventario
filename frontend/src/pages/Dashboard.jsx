@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
-import { CATEGORIAS, ZONAS } from '../catalog';
+import { CATEGORIAS_PEDIDOS, CATEGORIAS_DANOS, ZONAS } from '../catalog';
 import Combobox from '../components/Combobox';
 import CategoriaPedido from '../components/CategoriaPedido';
 import CategoriaReporte from '../components/CategoriaReporte';
@@ -50,7 +50,7 @@ export default function Dashboard() {
   const [reporteKey, setReporteKey] = useState(0);
 
   function getItemsCategoria(cat) {
-    const g = CATEGORIAS.find((c) => c.categoria === cat);
+    const g = CATEGORIAS_PEDIDOS.find((c) => c.categoria === cat);
     return g ? g.items : [];
   }
 
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
           <label>🛒 Elige las categorías de productos</label>
           <div className="cat-chips">
-            {CATEGORIAS.filter((g) => g.items.length > 0).map((g) => (
+            {CATEGORIAS_PEDIDOS.filter((g) => g.items.length > 0).map((g) => (
               <button
                 key={g.categoria}
                 type="button"
@@ -217,7 +217,7 @@ export default function Dashboard() {
           <label>Objeto dañado</label>
           <CategoriaReporte
             key={reporteKey}
-            groups={CATEGORIAS}
+            groups={CATEGORIAS_DANOS}
             seleccion={reporteForm.objeto}
             onSeleccion={(obj) => setReporteForm((prev) => ({ ...prev, objeto: obj }))}
           />
