@@ -504,6 +504,33 @@ button:hover {
   color: #b91c1c;
 }
 
+.cat-prod-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.falta-qty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.falta-qty label {
+  font-size: 0.75rem;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.falta-qty-input {
+  width: 58px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #f87171;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .foto-verif {
   display: flex;
   align-items: center;

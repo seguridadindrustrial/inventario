@@ -9,6 +9,7 @@ const MAX_FOTOS = 5;
 export default function Verificacion() {
   const user = getUser();
   const [estado, setEstado] = useState({});   // { cat: { prod: 'todo' | 'falta' } }
+  const [cantidades, setCantidades] = useState({}); // { cat: { prod: "cuánto falta" } }
   const [fotos, setFotos] = useState({});     // { cat: [dataURL] } máx MAX_FOTOS
   const [nota, setNota] = useState('');
   const [msg, setMsg] = useState('');
@@ -33,6 +34,23 @@ export default function Verificacion() {
     return cats
       .find((g) => g.categoria === cat)
       ?.items.filter((p) => mapa[p] === 'falta') || [];
+  }
+
+  function etiquetaFalta(cat, prod) {
+    const c = (cantidades[cat] || {})[prod];
+    return c ? `${prod} (faltan ${c})` : prod;
+  }
+
+  function setCantidad(cat, prod, val) {
+    setCantidades((prev) => ({ ...prev, [cat]: { ...(prev[cat] || {}), [prod]: val } }));
+  }
+
+  function limpiarCantidad(cat, prod) {
+    setCantidades((prev) => {
+      const mapa = { ...(prev[cat] || {}) };
+      delete mapa[prod];
+      return { ...prev, [cat]: mapa };
+    });
   }
 
   function agregarFoto(cat, url) {
@@ -76,7 +94,8 @@ export default function Verificacion() {
       categoria: g.categoria,
       productos: g.items.map((p) => ({
         producto: p,
-        estado: (estado[g.categoria] || {})[p] || 'todo'
+        estado: (estado[g.categoria] || {})[p] || 'todo',
+        cantidad: (estado[g.categoria] || {})[p] === 'falta' ? (cantidades[g.categoria] || {})[p] || '' : ''
       }))
     }));
     const fotosOut = {};
@@ -89,8 +108,10 @@ export default function Verificacion() {
       const res = await crearVerificacion(datos, user);
       const lineas = cats.map((g) => {
         const f = faltantes(g.categoria);
-        const estado = f.length === 0 ? '✅ Todo correcto' : `⚠️ Falta: ${f.join(', ')}`;
-        return `${g.categoria}: ${estado}`;
+        const estadoCat = f.length === 0
+          ? '✅ Todo correcto'
+          : `⚠️ Falta: ${f.map((p) => etiquetaFalta(g.categoria, p)).join(', ')}`;
+        return `${g.categoria}: ${estadoCat}`;
       });
       const encabezado = faltan.length === 0
         ? '✅ *VERIFICACIÓN DE INVENTARIO*\n\nTodo completo.'
@@ -99,6 +120,7 @@ export default function Verificacion() {
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setMsg(`${res.message}${totalFotos ? ` (${totalFotos} foto(s) al correo)` : ''}`);
       setEstado({});
+      setCantidades({});
       setFotos({});
       setNota('');
     } catch (err) {
@@ -147,14 +169,29 @@ export default function Verificacion() {
                   {visibles.length === 0 && <div className="muted">Sin resultados.</div>}
                   {visibles.map((p) => (
                     <div className={'cat-prod-row' + (map[p] === 'falta' ? ' falta' : '')} key={p}>
-                      <span className="cat-prod-nombre">
-                        {map[p] === 'falta' ? '⚠️ ' : ''}{p}
-                      </span>
+                      <div className="cat-prod-info">
+                        <span className="cat-prod-nombre">
+                          {map[p] === 'falta' ? '⚠️ ' : ''}{p}
+                        </span>
+                        {map[p] === 'falta' && (
+                          <div className="falta-qty">
+                            <label>¿Cuánto falta?</label>
+                            <input
+                              className="falta-qty-input"
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={(cantidades[g.categoria] || {})[p] || ''}
+                              onChange={(e) => setCantidad(g.categoria, p, e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <div className="estado-toggle">
                         <button
                           type="button"
                           className={map[p] ? 'but' : 'but on'}
-                          onClick={() => setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'todo' } }))}
+                          onClick={() => { setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'todo' } })); limpiarCantidad(g.categoria, p); }}
                         >
                           ✓
                         </button>
