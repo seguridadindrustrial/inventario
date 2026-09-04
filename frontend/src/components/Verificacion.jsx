@@ -45,14 +45,6 @@ export default function Verificacion() {
     setCantidades((prev) => ({ ...prev, [cat]: { ...(prev[cat] || {}), [prod]: val } }));
   }
 
-  function limpiarCantidad(cat, prod) {
-    setCantidades((prev) => {
-      const mapa = { ...(prev[cat] || {}) };
-      delete mapa[prod];
-      return { ...prev, [cat]: mapa };
-    });
-  }
-
   function agregarFoto(cat, url) {
     setFotos((prev) => {
       const actuales = prev[cat] || [];
@@ -95,7 +87,7 @@ export default function Verificacion() {
       productos: g.items.map((p) => ({
         producto: p,
         estado: (estado[g.categoria] || {})[p] || 'todo',
-        cantidad: (estado[g.categoria] || {})[p] === 'falta' ? (cantidades[g.categoria] || {})[p] || '' : ''
+        cantidad: (cantidades[g.categoria] || {})[p] || ''
       }))
     }));
     const fotosOut = {};
@@ -173,25 +165,23 @@ export default function Verificacion() {
                         <span className="cat-prod-nombre">
                           {map[p] === 'falta' ? '⚠️ ' : ''}{p}
                         </span>
-                        {map[p] === 'falta' && (
-                          <div className="falta-qty">
-                            <label>¿Cuánto falta?</label>
-                            <input
-                              className="falta-qty-input"
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              value={(cantidades[g.categoria] || {})[p] || ''}
-                              onChange={(e) => setCantidad(g.categoria, p, e.target.value)}
-                            />
-                          </div>
-                        )}
+                        <div className={'falta-qty' + (map[p] === 'falta' ? ' falta' : '')}>
+                          <label>{map[p] === 'falta' ? '¿Cuánto falta?' : '¿Cuánto hay?'}</label>
+                          <input
+                            className={'falta-qty-input' + (map[p] === 'falta' ? ' falta' : '')}
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={(cantidades[g.categoria] || {})[p] || ''}
+                            onChange={(e) => setCantidad(g.categoria, p, e.target.value)}
+                          />
+                        </div>
                       </div>
                       <div className="estado-toggle">
                         <button
                           type="button"
                           className={map[p] ? 'but' : 'but on'}
-                          onClick={() => { setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'todo' } })); limpiarCantidad(g.categoria, p); }}
+                          onClick={() => setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'todo' } }))}
                         >
                           ✓
                         </button>

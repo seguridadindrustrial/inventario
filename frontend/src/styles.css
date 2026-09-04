@@ -518,17 +518,25 @@ button:hover {
 
 .falta-qty label {
   font-size: 0.75rem;
-  color: #b91c1c;
+  color: #6b7280;
   font-weight: 600;
 }
 
 .falta-qty-input {
   width: 58px;
   padding: 0.25rem 0.4rem;
-  border: 1px solid #f87171;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.85rem;
   text-align: center;
+}
+
+.falta-qty.falta label {
+  color: #b91c1c;
+}
+
+.falta-qty-input.falta {
+  border-color: #f87171;
 }
 
 .foto-verif {
