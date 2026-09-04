@@ -1,36 +1,12 @@
 import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
 import { CATEGORIAS_PEDIDOS, CATEGORIAS_DANOS, ZONAS } from '../catalog';
+import { comprimirImagen, sinPrefijo } from '../util';
 import Combobox from '../components/Combobox';
 import CategoriaPedido from '../components/CategoriaPedido';
 import CategoriaReporte from '../components/CategoriaReporte';
+import Verificacion from '../components/Verificacion';
 import Camera from '../components/Camera';
-
-// Comprime una imagen (File) y devuelve un dataURL jpeg (prefijo incluido)
-function comprimirImagen(file, maxW = 900, maxH = 900, calidad = 0.7) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(img.width * ratio));
-        canvas.height = Math.max(1, Math.round(img.height * ratio));
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', calidad));
-      };
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// Genera una miniaturla (ya no se usa; la foto solo va al correo)
-const sinPrefijo = (url) => (url || '').split(',')[1] || '';
 
 export default function Dashboard() {
   const [tab, setTab] = useState('pedido');
@@ -157,9 +133,14 @@ export default function Dashboard() {
         <button className={tab === 'reporte' ? 'tab active' : 'tab'} onClick={() => { setTab('reporte'); setWaLink(''); setReportMsg(''); }}>
           ⚠️ Reportar Daño
         </button>
+        <button className={tab === 'verificar' ? 'tab active' : 'tab'} onClick={() => setTab('verificar')}>
+          ✅ Verificar
+        </button>
       </div>
 
-      {tab === 'pedido' ? (
+      {tab === 'verificar' ? (
+        <Verificacion />
+      ) : tab === 'pedido' ? (
         <form className="card card-wide" onSubmit={submitPedido}>
           <h2>Nuevo Pedido</h2>
 

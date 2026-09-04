@@ -57,3 +57,7 @@ export async function crearPedido(datos, usuario) {
 export async function crearReporte(datos, usuario) {
   return postScript({ accion: 'nuevo', tipo: 'reporte', datos, usuario });
 }
+
+export async function crearVerificacion(datos, usuario) {
+  return postScript({ accion: 'verificar', datos, usuario });
+}

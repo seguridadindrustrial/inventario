@@ -455,6 +455,98 @@ button:hover {
   background: white;
 }
 
+/* ---------- Verificación de inventario ---------- */
+.cat-seccion-total.ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cat-seccion-total.falta {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.cat-prod-row.falta {
+  background: #fef2f2;
+}
+
+.cat-prod-row.falta .cat-prod-nombre {
+  color: #b91c1c;
+}
+
+.estado-toggle {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.estado-toggle .but {
+  width: 44px;
+  height: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.15s ease;
+}
+
+.estado-toggle .but.on {
+  background: #ecfdf5;
+  border-color: #34d399;
+  color: #047857;
+}
+
+.estado-toggle .but.faut.on {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.foto-verif {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.foto-count {
+  font-size: 0.8rem;
+}
+
+.thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .cat-prod-row {
   display: flex;
   align-items: center;

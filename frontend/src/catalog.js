@@ -113,6 +113,19 @@ export const CATEGORIAS_DANOS = [
   { categoria: 'Vajilla y bandejas', items: VAJILLA }
 ];
 
+// Verificación de inventario: todas las categorías de ambas listas
+// (Bebidas y vinos no se repite porque sus artículos ya están en Bebidas + Vinos).
+export const CATEGORIAS_VERIFICACION = [
+  { categoria: 'Bebidas', items: BEBIDAS },
+  { categoria: 'Cristalería y bar', items: CRISTALERIA },
+  { categoria: 'Cubiertos', items: CUBIERTOS },
+  { categoria: 'Decoración', items: DECORACION },
+  { categoria: 'Otros', items: OTROS },
+  { categoria: 'Productos de limpieza', items: LIMPIEZA },
+  { categoria: 'Vajilla y bandejas', items: VAJILLA },
+  { categoria: 'Vinos', items: VINOS }
+];
+
 export const ZONAS = [
   'PISO 2',
   'SALA DE DEGUSTACIÓN'
