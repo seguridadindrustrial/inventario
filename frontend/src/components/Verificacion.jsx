@@ -107,8 +107,11 @@ export default function Verificacion() {
           const v = (cantidades[g.categoria] || {})[p];
           return v !== undefined && String(v).trim() !== '';
         })
+        .sort((a, b) => a.localeCompare(b, 'es'))
         .map((p) => ({ producto: p, cantidad: (cantidades[g.categoria] || {})[p] }))
-    })).filter((c) => c.productos.length > 0);
+    }))
+      .filter((c) => c.productos.length > 0)
+      .sort((a, b) => a.categoria.localeCompare(b.categoria, 'es'));
 
     if (categorias.length === 0) return setError('Escribe al menos una cantidad en algún artículo.');
 
