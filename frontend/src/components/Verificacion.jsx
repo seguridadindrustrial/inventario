@@ -36,11 +36,6 @@ export default function Verificacion() {
       ?.items.filter((p) => mapa[p] === 'falta') || [];
   }
 
-  function etiquetaFalta(cat, prod) {
-    const c = (cantidades[cat] || {})[prod];
-    return c ? `${prod} (faltan ${c})` : prod;
-  }
-
   function setCantidad(cat, prod, val) {
     setCantidades((prev) => ({ ...prev, [cat]: { ...(prev[cat] || {}), [prod]: val } }));
   }
@@ -99,11 +94,16 @@ export default function Verificacion() {
     try {
       const res = await crearVerificacion(datos, user);
       const lineas = cats.map((g) => {
-        const f = faltantes(g.categoria);
-        const estadoCat = f.length === 0
-          ? '✅ Todo correcto'
-          : `⚠️ Falta: ${f.map((p) => etiquetaFalta(g.categoria, p)).join(', ')}`;
-        return `${g.categoria}: ${estadoCat}`;
+        const detalle = [];
+        g.items.forEach((p) => {
+          const st = (estado[g.categoria] || {})[p] || 'todo';
+          const cant = (cantidades[g.categoria] || {})[p];
+          if (st === 'falta') detalle.push(`✗ ${p}${cant ? ` (faltan ${cant})` : ''}`);
+          else if (cant) detalle.push(`✓ ${p} (hay ${cant})`);
+        });
+        return detalle.length === 0
+          ? `${g.categoria}: ✅ Todo correcto`
+          : `${g.categoria}: ${detalle.join(', ')}`;
       });
       const encabezado = faltan.length === 0
         ? '✅ *VERIFICACIÓN DE INVENTARIO*\n\nTodo completo.'
