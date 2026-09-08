@@ -155,7 +155,7 @@ export default function Historial() {
                   <td>{o.id}</td>
                   <td>{o.tipo}</td>
                   <td>{o._src === 'inventario' ? `${o.categoria} • ${o.articulo}` : (o.articulo || '—')}</td>
-                  <td>{o.cantidad || '—'}</td>
+                  <td>{o._src === 'inventario' && o.estado === 'FALTA' && o.anterior ? `${o.cantidad} de ${o.anterior}` : (o.cantidad || '—')}</td>
                   <td>
                     {o._src === 'inventario' ? (
                       <span className={`badge ${o.estado === 'FALTA' ? 'estado-falta' : 'estado-ok'}`}>{o.estado}</span>

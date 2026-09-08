@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { crearVerificacion, getUser } from '../api';
+import { crearVerificacion, obtenerStock, getUser } from '../api';
 import { gruposDeZona, ZONAS } from '../catalog';
 import { comprimirImagen, sinPrefijo } from '../util';
 import Camera from './Camera';
@@ -10,8 +10,8 @@ const MAX_FOTOS = 5;
 export default function Verificacion() {
   const user = getUser();
   const [zona, setZona] = useState('');
-  const [estado, setEstado] = useState({});   // { cat: { prod: 'todo' | 'falta' } }
-  const [cantidades, setCantidades] = useState({}); // { cat: { prod: "cuánto falta" } }
+  const [stock, setStock] = useState({});    // { `${cat}::${prod}`: cantidadEhay }
+  const [cantidades, setCantidades] = useState({}); // { cat: { prod: "nuevo valor" } }
   const [fotos, setFotos] = useState({});     // { cat: [dataURL] } máx MAX_FOTOS
   const [nota, setNota] = useState('');
   const [msg, setMsg] = useState('');
@@ -24,9 +24,15 @@ export default function Verificacion() {
 
   const cats = zona ? gruposDeZona(zona, 'verificacion') : [];
 
-  function onZonaChange(z) {
+  const clave = (cat, prod) => `${cat}::${prod}`;
+  const actualDe = (cat, prod) => {
+    const v = stock[clave(cat, prod)];
+    return v === undefined || v === null || v === '' ? null : Number(v);
+  };
+
+  async function onZonaChange(z) {
     setZona(z);
-    setEstado({});
+    setStock({});
     setCantidades({});
     setFotos({});
     setOpen({});
@@ -34,24 +40,27 @@ export default function Verificacion() {
     setMsg('');
     setError('');
     setWaLink('');
-  }
-
-  function toggleEstado(cat, prod) {
-    setEstado((prev) => {
-      const actual = (prev[cat] || {})[prod] === 'falta' ? 'todo' : 'falta';
-      return { ...prev, [cat]: { ...(prev[cat] || {}), [prod]: actual } };
-    });
-  }
-
-  function faltantes(cat) {
-    const mapa = estado[cat] || {};
-    return cats
-      .find((g) => g.categoria === cat)
-      ?.items.filter((p) => mapa[p] === 'falta') || [];
+    if (!z) return;
+    try {
+      const lista = await obtenerStock(z);
+      const mapa = {};
+      lista.forEach((s) => { mapa[clave(s.categoria, s.articulo)] = s.cantidad !== '' ? Number(s.cantidad) : ''; });
+      setStock(mapa);
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   function setCantidad(cat, prod, val) {
     setCantidades((prev) => ({ ...prev, [cat]: { ...(prev[cat] || {}), [prod]: val } }));
+  }
+
+  function faltaItem(cat, prod) {
+    const val = (cantidades[cat] || {})[prod];
+    const act = actualDe(cat, prod);
+    if (val === undefined || String(val).trim() === '' || act === null) return 0;
+    const n = Number(val);
+    return !isNaN(n) && n < act ? act - n : 0;
   }
 
   function agregarFoto(cat, url) {
@@ -84,21 +93,25 @@ export default function Verificacion() {
     });
   }
 
-  const faltan = cats.flatMap((g) => faltantes(g.categoria));
   const totalFotos = Object.values(fotos).reduce((s, a) => s + a.length, 0);
 
   async function submit(e) {
     e.preventDefault();
     setError('');
     setWaLink('');
+    if (!zona) return setError('Elige una zona.');
     const categorias = cats.map((g) => ({
       categoria: g.categoria,
-      productos: g.items.map((p) => ({
-        producto: p,
-        estado: (estado[g.categoria] || {})[p] || 'todo',
-        cantidad: (cantidades[g.categoria] || {})[p] || ''
-      }))
-    }));
+      productos: g.items
+        .filter((p) => {
+          const v = (cantidades[g.categoria] || {})[p];
+          return v !== undefined && String(v).trim() !== '';
+        })
+        .map((p) => ({ producto: p, cantidad: (cantidades[g.categoria] || {})[p] }))
+    })).filter((c) => c.productos.length > 0);
+
+    if (categorias.length === 0) return setError('Escribe al menos una cantidad en algún artículo.');
+
     const fotosOut = {};
     for (const [cat, arr] of Object.entries(fotos)) {
       fotosOut[cat] = arr.map(sinPrefijo);
@@ -107,28 +120,21 @@ export default function Verificacion() {
 
     try {
       const res = await crearVerificacion(datos, user);
-      const lineas = cats.map((g) => {
-        const detalle = [];
-        g.items.forEach((p) => {
-          const st = (estado[g.categoria] || {})[p] || 'todo';
-          const cant = (cantidades[g.categoria] || {})[p];
-          if (st === 'falta') detalle.push(`FALTA: ${p}${cant ? ` (faltan ${cant})` : ''}`);
-          else if (cant) detalle.push(`OK: ${p} (hay ${cant})`);
-        });
-        return detalle.length === 0
-          ? `${g.categoria}: OK`
-          : `${g.categoria}:\n  ${detalle.join('\n  ')}`;
-      });
-      const encabezado = faltan.length === 0
-        ? '*VERIFICACIÓN DE INVENTARIO*\n\nTodo completo.'
-        : `*VERIFICACIÓN DE INVENTARIO*\n\nFALTA ALGO (${faltan.length} artículo(s)).`;
-      const texto = `${encabezado}\n\nDe: ${user.nombre}\nZona: ${zona}\n\n${lineas.join('\n')}\n\nNota: ${nota || 'Sin nota'}${totalFotos ? `\n\n${totalFotos} foto(s) adjuntas al correo.` : ''}`;
-      setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
+      setWaLink(`https://wa.me/?text=${encodeURIComponent(res.texto || '')}`);
       setMsg(`${res.message}${totalFotos ? ` (${totalFotos} foto(s) al correo)` : ''}`);
-      setEstado({});
       setCantidades({});
       setFotos({});
       setNota('');
+      if (zona) {
+        try {
+          const lista = await obtenerStock(zona);
+          const mapa = {};
+          lista.forEach((s) => { mapa[clave(s.categoria, s.articulo)] = s.cantidad !== '' ? Number(s.cantidad) : ''; });
+          setStock(mapa);
+        } catch (err2) {
+          setError(err2.message);
+        }
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -137,7 +143,7 @@ export default function Verificacion() {
   return (
     <form className="card card-wide" onSubmit={submit}>
       <h2>Verificar Inventario</h2>
-      <p className="muted">1. Elige la zona. Luego marca "Falta" en cada artículo ausente y captura el número que pongan (cuánto hay / cuánto falta). Fotos (hasta {MAX_FOTOS} por categoría): solo van al correo.</p>
+      <p className="muted">1. Elige la zona. Escribe cuánto hay de cada artículo: esa cantidad se vuelve el nuevo valor registrado. Si escribes menos que lo que había, se reporta como faltante.</p>
 
       <Combobox
         options={ZONAS}
@@ -149,11 +155,11 @@ export default function Verificacion() {
 
       {zona && cats.map((g) => {
         const isOpen = !!open[g.categoria];
-        const f = faltantes(g.categoria);
-        const map = estado[g.categoria] || {};
+        const map = cantidades[g.categoria] || {};
         const q = (query[g.categoria] || '').trim().toLowerCase();
         const visibles = g.items.filter((p) => p.toLowerCase().includes(q));
         const fotosCat = fotos[g.categoria] || [];
+        const faltanCat = g.items.reduce((s, p) => s + faltaItem(g.categoria, p), 0);
 
         return (
           <div className={'cat-seccion' + (isOpen ? ' open' : '')} key={g.categoria}>
@@ -164,10 +170,10 @@ export default function Verificacion() {
             >
               <span className={'cat-seccion-arrow' + (isOpen ? ' open' : '')}>▸</span>
               <span className="cat-seccion-titulo">{g.categoria}</span>
-              {f.length > 0 ? (
-                <span className="cat-seccion-total falta">{f.length} falta(n)</span>
+              {faltanCat > 0 ? (
+                <span className="cat-seccion-total falta">{faltanCat} falta(n)</span>
               ) : (
-                <span className="cat-seccion-total ok">✓ todo</span>
+                <span className="cat-seccion-total ok">OK</span>
               )}
             </button>
 
@@ -181,42 +187,33 @@ export default function Verificacion() {
                 />
                 <div className="cat-seccion-lista">
                   {visibles.length === 0 && <div className="muted">Sin resultados.</div>}
-                  {visibles.map((p) => (
-                    <div className={'cat-prod-row' + (map[p] === 'falta' ? ' falta' : '')} key={p}>
-                      <div className="cat-prod-info">
-                        <span className="cat-prod-nombre">
-                          {map[p] === 'falta' ? '⚠️ ' : ''}{p}
-                        </span>
-                        <div className={'falta-qty' + (map[p] === 'falta' ? ' falta' : '')}>
-                          <label>{map[p] === 'falta' ? '¿Cuánto falta?' : '¿Cuánto hay?'}</label>
-                          <input
-                            className={'falta-qty-input' + (map[p] === 'falta' ? ' falta' : '')}
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            value={(cantidades[g.categoria] || {})[p] || ''}
-                            onChange={(e) => setCantidad(g.categoria, p, e.target.value)}
-                          />
+                  {visibles.map((p) => {
+                    const act = actualDe(g.categoria, p);
+                    const falta = faltaItem(g.categoria, p);
+                    const val = (cantidades[g.categoria] || {})[p] || '';
+                    return (
+                      <div className={'cat-prod-row' + (falta > 0 ? ' falta' : '')} key={p}>
+                        <div className="cat-prod-info">
+                          <span className="cat-prod-nombre">{p}</span>
+                          <div className="stock-actual">
+                            {act === null ? 'Sin registro aún' : `Ahora hay: ${act}`}
+                          </div>
+                          <div className={'falta-qty' + (falta > 0 ? ' falta' : '')}>
+                            <label>¿Cuánto hay?</label>
+                            <input
+                              className={'falta-qty-input' + (falta > 0 ? ' falta' : '')}
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={val}
+                              onChange={(e) => setCantidad(g.categoria, p, e.target.value)}
+                            />
+                            {falta > 0 && <span className="falta-hint">falta {falta}</span>}
+                          </div>
                         </div>
                       </div>
-                      <div className="estado-toggle">
-                        <button
-                          type="button"
-                          className={map[p] ? 'but' : 'but on'}
-                          onClick={() => setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'todo' } }))}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          type="button"
-                          className={map[p] === 'falta' ? 'but faut on' : 'but faut'}
-                          onClick={() => setEstado((prev) => ({ ...prev, [g.categoria]: { ...(prev[g.categoria] || {}), [p]: 'falta' } }))}
-                        >
-                          ✗
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="foto-verif">

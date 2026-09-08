@@ -539,6 +539,18 @@ button:hover {
   border-color: #f87171;
 }
 
+.stock-actual {
+  font-size: 0.75rem;
+  color: #374151;
+  margin-top: 0.15rem;
+}
+
+.falta-hint {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
 .foto-verif {
   display: flex;
   align-items: center;

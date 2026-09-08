@@ -61,3 +61,9 @@ export async function crearReporte(datos, usuario) {
 export async function crearVerificacion(datos, usuario) {
   return postScript({ accion: 'verificar', datos, usuario });
 }
+
+export async function obtenerStock(zona) {
+  const data = await fetchScript({ accion: 'stock' });
+  if (data.error) throw new Error(data.error);
+  return (data.stock || []).filter((s) => s.zona === zona);
+}
