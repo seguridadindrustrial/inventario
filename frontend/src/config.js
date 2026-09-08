@@ -1,6 +1,6 @@
 
 
-export const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGnAZSLJJ03DJujgqAE118mhZDoPKrgg_UFARqZ--ajR3WuuuQ690IhYxP8ICBaagfaQ/exec';
+export const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWSAIXbsOUkOVHDSBLPEdfCEh_2lqGl2lsAzHdAmzgy-1LpVUrmkNAj4wa36UtJvS4pQ/exec';
 
 export const ADMIN_PASSWORD = import.meta.env.VITE_CLAVE_ADMIN || '';
 export const USER_PASSWORD = import.meta.env.VITE_CLAVE_USUARIO || '';
