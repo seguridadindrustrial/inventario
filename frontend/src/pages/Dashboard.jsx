@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
-import { CATEGORIAS_PEDIDOS, CATEGORIAS_DANOS, ZONAS } from '../catalog';
+import { CATEGORIAS_PEDIDOS, CATEGORIAS_DANOS, ZONAS, porZona } from '../catalog';
 import { comprimirImagen, sinPrefijo } from '../util';
 import Combobox from '../components/Combobox';
 import CategoriaPedido from '../components/CategoriaPedido';
@@ -49,6 +49,17 @@ export default function Dashboard() {
     setCantPorCat((prev) => ({ ...prev, [cat]: mapa }));
   }
 
+  function onZonaPedido(z) {
+    setZona(z);
+    setCats([]);
+    setCantPorCat({});
+  }
+
+  function onZonaReporte(z) {
+    setReporteForm({ ...reporteForm, zona: z, objeto: '' });
+    setReporteKey((k) => k + 1);
+  }
+
   async function onArchivo(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -78,7 +89,7 @@ export default function Dashboard() {
     try {
       const res = await crearPedido(datos, user);
       const lista = validos.map((p) => `• ${p.producto} x${p.cantidad}`).join('\n');
-      const texto = `📦 *NUEVO PEDIDO ${urgencia.toUpperCase()}*\n\n👤 De: ${user.nombre}\n🛒 Productos:\n${lista}\n📍 Zona: ${zona}\n📝 Nota: ${notas || 'Sin nota'}`;
+      const texto = `*NUEVO PEDIDO (${urgencia.toUpperCase()})*\n\nDe: ${user.nombre}\n\nProductos:\n${lista}\n\nZona: ${zona}\nNota: ${notas || 'Sin nota'}`;
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setOrderMsg(`${res.message} (No. ${res.id})`);
       setCats([]);
@@ -112,8 +123,8 @@ export default function Dashboard() {
     }
     try {
       const res = await crearReporte(datos, user);
-      let texto = `⚠️ *REPORTE DE DAÑO*\n\n👤 De: ${user.nombre}\n🪑 Objeto: ${datos.objeto}\n📍 Zona: ${datos.zona}\n⚡ Urgencia: ${datos.urgencia}\n📝 Nota: ${datos.nota || 'Sin nota'}`;
-      if (datos.foto) texto += '\n📷 Incluye foto';
+      let texto = `*REPORTE DE DAÑO*\n\nDe: ${user.nombre}\nObjeto: ${datos.objeto}\nZona: ${datos.zona}\nUrgencia: ${datos.urgencia}\nNota: ${datos.nota || 'Sin nota'}`;
+      if (datos.foto) texto += '\nIncluye foto adjunta (ver correo).';
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setReportMsg(`${res.message} (No. ${res.id})`);
       setReporteForm({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
@@ -144,101 +155,116 @@ export default function Dashboard() {
         <form className="card card-wide" onSubmit={submitPedido}>
           <h2>Nuevo Pedido</h2>
 
-          <label>🛒 Elige las categorías de productos</label>
-          <div className="cat-chips">
-            {CATEGORIAS_PEDIDOS.filter((g) => g.items.length > 0).map((g) => (
-              <button
-                key={g.categoria}
-                type="button"
-                className={'cat-chip' + (cats.includes(g.categoria) ? ' active' : '')}
-                onClick={() => toggleCategoria(g.categoria)}
-              >
-                {g.categoria}
-              </button>
-            ))}
-          </div>
-
-          {cats.length === 0 && <p className="muted">Selecciona una o más categorías para elegir sus productos.</p>}
-
-          {cats.map((cat) => (
-            <CategoriaPedido
-              key={cat}
-              categoria={cat}
-              items={getItemsCategoria(cat)}
-              onCambio={onCantCatChange}
-            />
-          ))}
-
-          <label>📍 Zona</label>
+          <label>1. Elige la zona</label>
           <Combobox
             options={ZONAS}
             value={zona}
-            onChange={setZona}
+            onChange={onZonaPedido}
             placeholder="Busca y elige la zona..."
           />
+          {!zona && <p className="muted">Primero elige la zona para ver sus categorías.</p>}
 
-          <label>⚡ Urgencia</label>
-          <select value={urgencia} onChange={(e) => setUrgencia(e.target.value)}>
-            <option value="normal">Normal</option>
-            <option value="alta">Alta</option>
-            <option value="urgente">Urgente</option>
-          </select>
+          {zona && (
+            <>
+              <label>2. Elige las categorías de productos</label>
+              <div className="cat-chips">
+                {porZona(CATEGORIAS_PEDIDOS, zona).map((g) => (
+                  <button
+                    key={g.categoria}
+                    type="button"
+                    className={'cat-chip' + (cats.includes(g.categoria) ? ' active' : '')}
+                    onClick={() => toggleCategoria(g.categoria)}
+                  >
+                    {g.categoria}
+                  </button>
+                ))}
+              </div>
 
-          <label>📝 Notas</label>
-          <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas adicionales" />
+              {cats.length === 0 && <p className="muted">Selecciona una o más categorías para elegir sus productos.</p>}
 
-          {error && <p className="error">{error}</p>}
-          {orderMsg && <p className="success">{orderMsg}</p>}
-          {waLink && <a className="wa-btn" href={waLink} target="_blank" rel="noreferrer">📱 Enviar por WhatsApp</a>}
-          <button type="submit">Enviar Pedido</button>
+              {cats.map((cat) => (
+                <CategoriaPedido
+                  key={cat}
+                  categoria={cat}
+                  items={getItemsCategoria(cat)}
+                  onCambio={onCantCatChange}
+                />
+              ))}
+
+              <label>3. Urgencia</label>
+              <select value={urgencia} onChange={(e) => setUrgencia(e.target.value)}>
+                <option value="normal">Normal</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+
+              <label>4. Notas</label>
+              <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas adicionales" />
+
+              {error && <p className="error">{error}</p>}
+              {orderMsg && <p className="success">{orderMsg}</p>}
+              {waLink && <a className="wa-btn" href={waLink} target="_blank" rel="noreferrer">📱 Enviar por WhatsApp</a>}
+              <button type="submit">Enviar Pedido</button>
+            </>
+          )}
         </form>
       ) : (
         <form className="card" onSubmit={submitReporte}>
           <h2>Reportar Daño</h2>
-          <label>Objeto dañado</label>
-          <CategoriaReporte
-            key={reporteKey}
-            groups={CATEGORIAS_DANOS}
-            seleccion={reporteForm.objeto}
-            onSeleccion={(obj) => setReporteForm((prev) => ({ ...prev, objeto: obj }))}
-          />
-          <label>📍 Zona</label>
+
+          <label>1. Elige la zona</label>
           <Combobox
             options={ZONAS}
             value={reporteForm.zona}
-            onChange={(v) => setReporteForm({ ...reporteForm, zona: v })}
-            placeholder="Elige la zona..."
+            onChange={onZonaReporte}
+            placeholder="Busca y elige la zona..."
           />
-          <label>⚡ Urgencia</label>
-          <select value={reporteForm.urgencia} onChange={(e) => setReporteForm({ ...reporteForm, urgencia: e.target.value })}>
-            <option value="normal">Normal</option>
-            <option value="alta">Alta</option>
-            <option value="urgente">Urgente</option>
-          </select>
-          <label>📝 Nota</label>
-          <textarea value={reporteForm.nota} onChange={(e) => setReporteForm({ ...reporteForm, nota: e.target.value })} placeholder="Nota adicional (opcional)" />
-          <label>Descripción del daño</label>
-          <textarea value={reporteForm.descripcion} onChange={(e) => setReporteForm({ ...reporteForm, descripcion: e.target.value })} required placeholder="Describe qué ocurrió" />
+          {!reporteForm.zona && <p className="muted">Primero elige la zona para ver sus objetos.</p>}
 
-          <label>📷 Foto del daño</label>
-          <div className="photo-actions">
-            <button type="button" className="btn-cam" onClick={() => setShowCamera(true)}>📷 Tomar foto</button>
-            <label className="btn-upload">
-              🖼️ Subir foto
-              <input type="file" accept="image/*" hidden onChange={onArchivo} />
-            </label>
-          </div>
-          {reporteForm.foto && (
-            <div className="photo-preview">
-              <img src={reporteForm.foto} alt="Vista previa" />
-              <button type="button" className="btn-remove-photo" onClick={() => setReporteForm({ ...reporteForm, foto: null })}>✕ Quitar</button>
-            </div>
+          {reporteForm.zona && (
+            <>
+              <label>2. Objeto dañado</label>
+              <CategoriaReporte
+                key={reporteKey}
+                groups={porZona(CATEGORIAS_DANOS, reporteForm.zona)}
+                seleccion={reporteForm.objeto}
+                onSeleccion={(obj) => setReporteForm((prev) => ({ ...prev, objeto: obj }))}
+              />
+
+              <label>3. Urgencia</label>
+              <select value={reporteForm.urgencia} onChange={(e) => setReporteForm({ ...reporteForm, urgencia: e.target.value })}>
+                <option value="normal">Normal</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+
+              <label>4. Nota</label>
+              <textarea value={reporteForm.nota} onChange={(e) => setReporteForm({ ...reporteForm, nota: e.target.value })} placeholder="Nota adicional (opcional)" />
+
+              <label>5. Descripción del daño</label>
+              <textarea value={reporteForm.descripcion} onChange={(e) => setReporteForm({ ...reporteForm, descripcion: e.target.value })} required placeholder="Describe qué ocurrió" />
+
+              <label>6. Foto del daño</label>
+              <div className="photo-actions">
+                <button type="button" className="btn-cam" onClick={() => setShowCamera(true)}>📷 Tomar foto</button>
+                <label className="btn-upload">
+                  🖼️ Subir foto
+                  <input type="file" accept="image/*" hidden onChange={onArchivo} />
+                </label>
+              </div>
+              {reporteForm.foto && (
+                <div className="photo-preview">
+                  <img src={reporteForm.foto} alt="Vista previa" />
+                  <button type="button" className="btn-remove-photo" onClick={() => setReporteForm({ ...reporteForm, foto: null })}>✕ Quitar</button>
+                </div>
+              )}
+
+              {error && <p className="error">{error}</p>}
+              {reportMsg && <p className="success">{reportMsg}</p>}
+              {waLink && <a className="wa-btn" href={waLink} target="_blank" rel="noreferrer">📱 Enviar por WhatsApp</a>}
+              <button type="submit">Enviar Reporte</button>
+            </>
           )}
-
-          {error && <p className="error">{error}</p>}
-          {reportMsg && <p className="success">{reportMsg}</p>}
-          {waLink && <a className="wa-btn" href={waLink} target="_blank" rel="noreferrer">📱 Enviar por WhatsApp</a>}
-          <button type="submit">Enviar Reporte</button>
         </form>
       )}
 

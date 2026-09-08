@@ -95,38 +95,46 @@ const OTROS = [
 const DECORACION = [];
 
 export const CATEGORIAS_PEDIDOS = [
-  { categoria: 'Bebidas', items: BEBIDAS },
-  { categoria: 'Cristalería y bar', items: CRISTALERIA },
-  { categoria: 'Cubiertos', items: CUBIERTOS },
-  { categoria: 'Otros', items: OTROS },
-  { categoria: 'Productos de limpieza', items: LIMPIEZA },
-  { categoria: 'Vajilla y bandejas', items: VAJILLA },
-  { categoria: 'Vinos', items: VINOS }
+  { categoria: 'Bebidas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: BEBIDAS },
+  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
+  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
+  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
+  { categoria: 'Productos de limpieza', zonas: ['SALA DE DEGUSTACIÓN'], items: LIMPIEZA },
+  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA },
+  { categoria: 'Vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VINOS }
 ];
 
 export const CATEGORIAS_DANOS = [
-  { categoria: 'Bebidas y vinos', items: [...BEBIDAS, ...VINOS].sort((a, b) => a.localeCompare(b, 'es')) },
-  { categoria: 'Cristalería y bar', items: CRISTALERIA },
-  { categoria: 'Cubiertos', items: CUBIERTOS },
-  { categoria: 'Decoración', items: DECORACION },
-  { categoria: 'Otros', items: OTROS },
-  { categoria: 'Vajilla y bandejas', items: VAJILLA }
+  { categoria: 'Bebidas y vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: [...BEBIDAS, ...VINOS].sort((a, b) => a.localeCompare(b, 'es')) },
+  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
+  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
+  { categoria: 'Decoración', zonas: ['PISO 2'], items: DECORACION },
+  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
+  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA }
 ];
 
 // Verificación de inventario: todas las categorías de ambas listas
 // (Bebidas y vinos no se repite porque sus artículos ya están en Bebidas + Vinos).
 export const CATEGORIAS_VERIFICACION = [
-  { categoria: 'Bebidas', items: BEBIDAS },
-  { categoria: 'Cristalería y bar', items: CRISTALERIA },
-  { categoria: 'Cubiertos', items: CUBIERTOS },
-  { categoria: 'Decoración', items: DECORACION },
-  { categoria: 'Otros', items: OTROS },
-  { categoria: 'Productos de limpieza', items: LIMPIEZA },
-  { categoria: 'Vajilla y bandejas', items: VAJILLA },
-  { categoria: 'Vinos', items: VINOS }
+  { categoria: 'Bebidas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: BEBIDAS },
+  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
+  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
+  { categoria: 'Decoración', zonas: ['PISO 2'], items: DECORACION },
+  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
+  { categoria: 'Productos de limpieza', zonas: ['SALA DE DEGUSTACIÓN'], items: LIMPIEZA },
+  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA },
+  { categoria: 'Vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VINOS }
 ];
 
+// Zonas disponibles. Las categorías se filtran por zona según el array `zonas`
+// de cada categoría (una categoría puede estar en una o en ambas zonas).
 export const ZONAS = [
   'PISO 2',
   'SALA DE DEGUSTACIÓN'
 ];
+
+// Devuelve las categorías que tienen artículos y pertenecen a la zona elegida.
+export function porZona(categorias, zona) {
+  if (!zona) return [];
+  return categorias.filter((g) => g.items.length > 0 && g.zonas.includes(zona));
+}

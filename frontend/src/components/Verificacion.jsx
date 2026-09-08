@@ -1,13 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { crearVerificacion, getUser } from '../api';
-import { CATEGORIAS_VERIFICACION } from '../catalog';
+import { CATEGORIAS_VERIFICACION, ZONAS, porZona } from '../catalog';
 import { comprimirImagen, sinPrefijo } from '../util';
 import Camera from './Camera';
+import Combobox from './Combobox';
 
 const MAX_FOTOS = 5;
 
 export default function Verificacion() {
   const user = getUser();
+  const [zona, setZona] = useState('');
   const [estado, setEstado] = useState({});   // { cat: { prod: 'todo' | 'falta' } }
   const [cantidades, setCantidades] = useState({}); // { cat: { prod: "cuánto falta" } }
   const [fotos, setFotos] = useState({});     // { cat: [dataURL] } máx MAX_FOTOS
@@ -20,7 +22,19 @@ export default function Verificacion() {
   const [camCat, setCamCat] = useState(null); // categoría de la cámara abierta
   const fileRefs = useRef({});
 
-  const cats = CATEGORIAS_VERIFICACION.filter((g) => g.items.length > 0);
+  const cats = zona ? porZona(CATEGORIAS_VERIFICACION, zona) : [];
+
+  function onZonaChange(z) {
+    setZona(z);
+    setEstado({});
+    setCantidades({});
+    setFotos({});
+    setOpen({});
+    setQuery({});
+    setMsg('');
+    setError('');
+    setWaLink('');
+  }
 
   function toggleEstado(cat, prod) {
     setEstado((prev) => {
@@ -89,7 +103,7 @@ export default function Verificacion() {
     for (const [cat, arr] of Object.entries(fotos)) {
       fotosOut[cat] = arr.map(sinPrefijo);
     }
-    const datos = { categorias, fotos: fotosOut, nota };
+    const datos = { categorias, zona, fotos: fotosOut, nota };
 
     try {
       const res = await crearVerificacion(datos, user);
@@ -98,17 +112,17 @@ export default function Verificacion() {
         g.items.forEach((p) => {
           const st = (estado[g.categoria] || {})[p] || 'todo';
           const cant = (cantidades[g.categoria] || {})[p];
-          if (st === 'falta') detalle.push(`✗ ${p}${cant ? ` (faltan ${cant})` : ''}`);
-          else if (cant) detalle.push(`✓ ${p} (hay ${cant})`);
+          if (st === 'falta') detalle.push(`FALTA: ${p}${cant ? ` (faltan ${cant})` : ''}`);
+          else if (cant) detalle.push(`OK: ${p} (hay ${cant})`);
         });
         return detalle.length === 0
-          ? `${g.categoria}: ✅ Todo correcto`
-          : `${g.categoria}: ${detalle.join(', ')}`;
+          ? `${g.categoria}: OK`
+          : `${g.categoria}:\n  ${detalle.join('\n  ')}`;
       });
       const encabezado = faltan.length === 0
-        ? '✅ *VERIFICACIÓN DE INVENTARIO*\n\nTodo completo.'
-        : `⚠️ *VERIFICACIÓN DE INVENTARIO*\n\nFALTA ALGO (${faltan.length} artículo(s)).`;
-      const texto = `${encabezado}\n\n👤 De: ${user.nombre}\n\n${lineas.join('\n')}\n\n📝 Nota: ${nota || 'Sin nota'}${totalFotos ? `\n\n📷 ${totalFotos} foto(s) adjuntas al correo.` : ''}`;
+        ? '*VERIFICACIÓN DE INVENTARIO*\n\nTodo completo.'
+        : `*VERIFICACIÓN DE INVENTARIO*\n\nFALTA ALGO (${faltan.length} artículo(s)).`;
+      const texto = `${encabezado}\n\nDe: ${user.nombre}\nZona: ${zona}\n\n${lineas.join('\n')}\n\nNota: ${nota || 'Sin nota'}${totalFotos ? `\n\n${totalFotos} foto(s) adjuntas al correo.` : ''}`;
       setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
       setMsg(`${res.message}${totalFotos ? ` (${totalFotos} foto(s) al correo)` : ''}`);
       setEstado({});
@@ -123,9 +137,17 @@ export default function Verificacion() {
   return (
     <form className="card card-wide" onSubmit={submit}>
       <h2>Verificar Inventario</h2>
-      <p className="muted">Marca "Falta" en cada artículo ausente. Acompaña la verificación con fotos (hasta {MAX_FOTOS} por categoría): solo van al correo.</p>
+      <p className="muted">1. Elige la zona. Luego marca "Falta" en cada artículo ausente y captura el número que pongan (cuánto hay / cuánto falta). Fotos (hasta {MAX_FOTOS} por categoría): solo van al correo.</p>
 
-      {cats.map((g) => {
+      <Combobox
+        options={ZONAS}
+        value={zona}
+        onChange={onZonaChange}
+        placeholder="Busca y elige la zona..."
+      />
+      {!zona && <p className="muted">Primero elige la zona para ver los artículos a verificar.</p>}
+
+      {zona && cats.map((g) => {
         const isOpen = !!open[g.categoria];
         const f = faltantes(g.categoria);
         const map = estado[g.categoria] || {};
