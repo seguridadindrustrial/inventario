@@ -5,6 +5,7 @@ import { ADMIN_PASSWORD, USER_PASSWORD } from '../config';
 
 export default function Login() {
   const [role, setRole] = useState('user');
+  const [nombre, setNombre] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -16,7 +17,10 @@ export default function Login() {
       ? password === ADMIN_PASSWORD
       : password === USER_PASSWORD;
     if (!ok) { setError('Contraseña incorrecta'); return; }
-    setAuth({ id: role, nombre: role === 'admin' ? 'Administrador' : 'Usuario', email: '', role });
+    const finalNombre = role === 'admin'
+      ? (nombre.trim() || 'Administrador')
+      : (nombre.trim() || 'Usuario');
+    setAuth({ id: role, nombre: finalNombre, email: '', role });
     navigate('/');
   }
 
@@ -32,16 +36,23 @@ export default function Login() {
               className={`role-btn ${role === 'user' ? 'active' : ''}`}
               onClick={() => setRole('user')}
             >
-              🧑 Usuario
+              Usuario
             </button>
             <button
               type="button"
               className={`role-btn ${role === 'admin' ? 'active' : ''}`}
               onClick={() => setRole('admin')}
             >
-              👑 Admin
+              Admin
             </button>
           </div>
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder={role === 'admin' ? 'Tu nombre (opcional)' : 'Tu nombre'}
+            required={role !== 'admin'}
+          />
           <input
             type="password"
             value={password}
