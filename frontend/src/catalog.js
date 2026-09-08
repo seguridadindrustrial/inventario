@@ -1,17 +1,19 @@
 // CATÁLOGO DE PRODUCTOS Y UBICACIONES
 // ---------------------------------------------------------------
+// Cada zona (SALA DE DEGUSTACIÓN / PISO 2) tiene su propio inventario.
 // Agrega, quita o edita nombres aquí. La app los mostrará en orden
 // alfabético dentro de cada categoría, con buscador.
 //
-// Hay dos catálogos:
-//   CATEGORIAS_PEDIDOS -> categorías del formulario de pedidos
-//   CATEGORIAS_DANOS   -> categorías del formulario de reporte de daños
-//
-// Ejemplo de un bloque:
-//   { categoria: 'Decoración', items: ['Jarrón', 'Alfombra'] }
+// Estructura:
+//   CATALOGO[zona] = {
+//     pedidos:      [ { categoria, items } ]  para el formulario de pedidos
+//     danos:        [ { categoria, items } ]  para reporte de daños
+//     verificacion: [ { categoria, items } ]  para verificación de inventario
+//   }
 // ---------------------------------------------------------------
 
-const BEBIDAS = [
+/* ===== SALA DE DEGUSTACIÓN ===== */
+const BEBIDAS_SALA = [
   'Agua Minalba',
   'Agua para máquina de café (sala de degustación)',
   'Agua Senda',
@@ -27,7 +29,7 @@ const BEBIDAS = [
   'Soda'
 ];
 
-const VINOS = [
+const VINOS_SALA = [
   'Salentein',
   'Vino blanco Marqués de Cáceres',
   'Vino blanco Montés',
@@ -35,14 +37,14 @@ const VINOS = [
   'Vino tinto Santa Carolina'
 ];
 
-const LIMPIEZA = [
+const LIMPIEZA_SALA = [
   'Panitos de mano (baño degustación)',
   'Servilletas coctelera',
   'Servilletas de comensal',
   'Servilletas de tela (bandeja)'
 ];
 
-const CRISTALERIA = [
+const CRISTALERIA_SALA = [
   'Copa de agua',
   'Copa de vino blanco',
   'Copa de vino tinto',
@@ -54,7 +56,7 @@ const CRISTALERIA = [
   'Vasos cortos'
 ];
 
-const VAJILLA = [
+const VAJILLA_SALA = [
   'Bandeja pasa paletas blanca',
   'Bandeja pasa paletas verde',
   'Boul Miko borde azul',
@@ -69,7 +71,7 @@ const VAJILLA = [
   'Tabla ajedrez'
 ];
 
-const CUBIERTOS = [
+const CUBIERTOS_SALA = [
   'Cucharilla postre',
   'Cucharilla sopa',
   'Cucharita café',
@@ -82,7 +84,7 @@ const CUBIERTOS = [
   'Tenedor mesa'
 ];
 
-const OTROS = [
+const OTROS_SALA = [
   'Guantes',
   'Palitos de bambú',
   'Papel higiénico',
@@ -92,49 +94,115 @@ const OTROS = [
   'Tapabocas'
 ];
 
-const DECORACION = [];
+const DECORACION_SALA = [];
 
-export const CATEGORIAS_PEDIDOS = [
-  { categoria: 'Bebidas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: BEBIDAS },
-  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
-  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
-  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
-  { categoria: 'Productos de limpieza', zonas: ['SALA DE DEGUSTACIÓN'], items: LIMPIEZA },
-  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA },
-  { categoria: 'Vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VINOS }
+/* ===== PISO 2 ===== */
+const LIMPIEZA_PISO2 = [
+  'Aragán',
+  'Bolsas blancas para papeleras',
+  'Bolsas negras para papeleras medianas',
+  'Coleto',
+  'Escoba',
+  'Esponjas doble uso',
+  'Garrafa cloro',
+  'Garrafa desinfectante',
+  'Garrafa jabón de manos',
+  'Garrafa jabón líquido',
+  'Limpotex azul',
+  'Limpotex rojo',
+  'Pala',
+  'Palitos amarillo',
+  'Papel higiénico',
+  'Pridex',
+  'Secante',
+  'Servilletas'
 ];
 
-export const CATEGORIAS_DANOS = [
-  { categoria: 'Bebidas y vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: [...BEBIDAS, ...VINOS].sort((a, b) => a.localeCompare(b, 'es')) },
-  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
-  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
-  { categoria: 'Decoración', zonas: ['PISO 2'], items: DECORACION },
-  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
-  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA }
+const BEBIDAS_PISO2 = [
+  'Azúcar kilo',
+  'Azúcar sobrecito',
+  'Café en grano kilo',
+  'Café en polvo kilo',
+  'Leche completa',
+  'Leche descremada',
+  'Manzanilla',
+  'Splenda',
+  'Té durazno',
+  'Té frutos rojos',
+  'Té negro',
+  'Té verde'
 ];
 
-// Verificación de inventario: todas las categorías de ambas listas
-// (Bebidas y vinos no se repite porque sus artículos ya están en Bebidas + Vinos).
-export const CATEGORIAS_VERIFICACION = [
-  { categoria: 'Bebidas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: BEBIDAS },
-  { categoria: 'Cristalería y bar', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CRISTALERIA },
-  { categoria: 'Cubiertos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: CUBIERTOS },
-  { categoria: 'Decoración', zonas: ['PISO 2'], items: DECORACION },
-  { categoria: 'Otros', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: OTROS },
-  { categoria: 'Productos de limpieza', zonas: ['SALA DE DEGUSTACIÓN'], items: LIMPIEZA },
-  { categoria: 'Vajilla y bandejas', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VAJILLA },
-  { categoria: 'Vinos', zonas: ['SALA DE DEGUSTACIÓN', 'PISO 2'], items: VINOS }
+const CRISTALERIA_PISO2 = [
+  'Vasos de café',
+  'Vasos grandes'
 ];
 
-// Zonas disponibles. Las categorías se filtran por zona según el array `zonas`
-// de cada categoría (una categoría puede estar en una o en ambas zonas).
+const OTROS_PISO2 = [];
+
+/* ===== CATÁLOGO POR ZONA ===== */
+export const CATALOGO = {
+  'SALA DE DEGUSTACIÓN': {
+    pedidos: [
+      { categoria: 'Bebidas', items: BEBIDAS_SALA },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_SALA },
+      { categoria: 'Cubiertos', items: CUBIERTOS_SALA },
+      { categoria: 'Otros', items: OTROS_SALA },
+      { categoria: 'Productos de limpieza', items: LIMPIEZA_SALA },
+      { categoria: 'Vajilla y bandejas', items: VAJILLA_SALA },
+      { categoria: 'Vinos', items: VINOS_SALA }
+    ],
+    danos: [
+      { categoria: 'Bebidas y vinos', items: [...BEBIDAS_SALA, ...VINOS_SALA].sort((a, b) => a.localeCompare(b, 'es')) },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_SALA },
+      { categoria: 'Cubiertos', items: CUBIERTOS_SALA },
+      { categoria: 'Decoración', items: DECORACION_SALA },
+      { categoria: 'Otros', items: OTROS_SALA },
+      { categoria: 'Vajilla y bandejas', items: VAJILLA_SALA }
+    ],
+    verificacion: [
+      { categoria: 'Bebidas', items: BEBIDAS_SALA },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_SALA },
+      { categoria: 'Cubiertos', items: CUBIERTOS_SALA },
+      { categoria: 'Decoración', items: DECORACION_SALA },
+      { categoria: 'Otros', items: OTROS_SALA },
+      { categoria: 'Productos de limpieza', items: LIMPIEZA_SALA },
+      { categoria: 'Vajilla y bandejas', items: VAJILLA_SALA },
+      { categoria: 'Vinos', items: VINOS_SALA }
+    ]
+  },
+  'PISO 2': {
+    pedidos: [
+      { categoria: 'Bebidas', items: BEBIDAS_PISO2 },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_PISO2 },
+      { categoria: 'Otros', items: OTROS_PISO2 },
+      { categoria: 'Productos de limpieza', items: LIMPIEZA_PISO2 }
+    ],
+    danos: [
+      { categoria: 'Bebidas', items: BEBIDAS_PISO2 },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_PISO2 },
+      { categoria: 'Otros', items: OTROS_PISO2 },
+      { categoria: 'Productos de limpieza', items: LIMPIEZA_PISO2 }
+    ],
+    verificacion: [
+      { categoria: 'Bebidas', items: BEBIDAS_PISO2 },
+      { categoria: 'Cristalería y bar', items: CRISTALERIA_PISO2 },
+      { categoria: 'Otros', items: OTROS_PISO2 },
+      { categoria: 'Productos de limpieza', items: LIMPIEZA_PISO2 }
+    ]
+  }
+};
+
+// Zonas disponibles.
 export const ZONAS = [
   'PISO 2',
   'SALA DE DEGUSTACIÓN'
 ];
 
-// Devuelve las categorías que tienen artículos y pertenecen a la zona elegida.
-export function porZona(categorias, zona) {
-  if (!zona) return [];
-  return categorias.filter((g) => g.items.length > 0 && g.zonas.includes(zona));
+// Devuelve las categorías (con artículos) de una zona para el tipo indicado:
+// 'pedidos' | 'danos' | 'verificacion'
+export function gruposDeZona(zona, tipo) {
+  const z = CATALOGO[zona];
+  if (!z || !z[tipo]) return [];
+  return z[tipo].filter((g) => g.items.length > 0);
 }

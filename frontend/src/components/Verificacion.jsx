@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { crearVerificacion, getUser } from '../api';
-import { CATEGORIAS_VERIFICACION, ZONAS, porZona } from '../catalog';
+import { gruposDeZona, ZONAS } from '../catalog';
 import { comprimirImagen, sinPrefijo } from '../util';
 import Camera from './Camera';
 import Combobox from './Combobox';
@@ -22,7 +22,7 @@ export default function Verificacion() {
   const [camCat, setCamCat] = useState(null); // categoría de la cámara abierta
   const fileRefs = useRef({});
 
-  const cats = zona ? porZona(CATEGORIAS_VERIFICACION, zona) : [];
+  const cats = zona ? gruposDeZona(zona, 'verificacion') : [];
 
   function onZonaChange(z) {
     setZona(z);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { crearPedido, crearReporte, getUser } from '../api';
-import { CATEGORIAS_PEDIDOS, CATEGORIAS_DANOS, ZONAS, porZona } from '../catalog';
+import { gruposDeZona, ZONAS } from '../catalog';
 import { comprimirImagen, sinPrefijo } from '../util';
 import Combobox from '../components/Combobox';
 import CategoriaPedido from '../components/CategoriaPedido';
@@ -25,8 +25,10 @@ export default function Dashboard() {
   const [reporteForm, setReporteForm] = useState({ categoria: '', objeto: '', zona: '', urgencia: 'normal', descripcion: '', nota: '', foto: null });
   const [reporteKey, setReporteKey] = useState(0);
 
+  const gruposPedidos = zona ? gruposDeZona(zona, 'pedidos') : [];
+
   function getItemsCategoria(cat) {
-    const g = CATEGORIAS_PEDIDOS.find((c) => c.categoria === cat);
+    const g = gruposPedidos.find((c) => c.categoria === cat);
     return g ? g.items : [];
   }
 
@@ -168,7 +170,7 @@ export default function Dashboard() {
             <>
               <label>2. Elige las categorías de productos</label>
               <div className="cat-chips">
-                {porZona(CATEGORIAS_PEDIDOS, zona).map((g) => (
+                {gruposPedidos.map((g) => (
                   <button
                     key={g.categoria}
                     type="button"
@@ -226,7 +228,7 @@ export default function Dashboard() {
               <label>2. Objeto dañado</label>
               <CategoriaReporte
                 key={reporteKey}
-                groups={porZona(CATEGORIAS_DANOS, reporteForm.zona)}
+                groups={gruposDeZona(reporteForm.zona, 'danos')}
                 seleccion={reporteForm.objeto}
                 onSeleccion={(obj) => setReporteForm((prev) => ({ ...prev, objeto: obj }))}
               />
