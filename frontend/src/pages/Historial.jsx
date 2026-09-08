@@ -25,7 +25,9 @@ export default function Historial() {
     setLoading(true);
     try {
       const data = await listarHistorial();
-      setAll(data.registros || []);
+      const regs = (data.registros || []).map((r) => ({ ...r, _src: 'registro' }));
+      const inv = (data.inventario || []).map((v) => ({ ...v, tipo: 'verificación', _src: 'inventario' }));
+      setAll([...regs, ...inv]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -63,7 +65,7 @@ export default function Historial() {
     if (search.trim()) {
       const s = search.toLowerCase();
       result = result.filter((it) =>
-        `${it.articulo || ''} ${it.id} ${it.zona || ''} ${it.nota || ''}`.toLowerCase().includes(s)
+        `${it.articulo || ''} ${it.id} ${it.zona || ''} ${it.nota || ''} ${it.categoria || ''} ${it.estado || ''}`.toLowerCase().includes(s)
       );
     }
     return result;
@@ -114,12 +116,17 @@ export default function Historial() {
         <button className={segment === 'daño' ? 'tab active' : 'tab'} onClick={() => setSegment('daño')}>
           ⚠️ Daños ({countT('daño')})
         </button>
+        <button className={segment === 'verificación' ? 'tab active' : 'tab'} onClick={() => setSegment('verificación')}>
+          🔍 Verificaciones ({countT('verificación')})
+        </button>
       </div>
 
       <div className="legend">
         <span className="legend-item row-urgente">Urgente</span>
         <span className="legend-item row-alta">Alta</span>
         <span className="legend-item row-normal">Normal</span>
+        <span className="legend-item estado-falta">Falta</span>
+        <span className="legend-item estado-ok">OK</span>
       </div>
 
       {error && <p className="error">Error al cargar: {error} — ¿Configuraste la URL en config.js?</p>}
@@ -135,6 +142,7 @@ export default function Historial() {
                 <th>Tipo</th>
                 <th>Artículo</th>
                 <th>Cantidad</th>
+                <th>Estado</th>
                 <th>Zona</th>
                 <th>Urgencia</th>
                 <th>Nota</th>
@@ -146,11 +154,22 @@ export default function Historial() {
                 <tr key={i} className={claseUrgencia(o.urgencia)}>
                   <td>{o.id}</td>
                   <td>{o.tipo}</td>
-                  <td>{o.articulo || '—'}</td>
+                  <td>{o._src === 'inventario' ? `${o.categoria} • ${o.articulo}` : (o.articulo || '—')}</td>
                   <td>{o.cantidad || '—'}</td>
+                  <td>
+                    {o._src === 'inventario' ? (
+                      <span className={`badge ${o.estado === 'FALTA' ? 'estado-falta' : 'estado-ok'}`}>{o.estado}</span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                   <td>{o.zona || '—'}</td>
                   <td>
-                    <span className={`badge urgencia-${(o.urgencia || 'normal').toLowerCase()}`}>{o.urgencia || 'normal'}</span>
+                    {o._src === 'inventario' ? (
+                      '—'
+                    ) : (
+                      <span className={`badge urgencia-${(o.urgencia || 'normal').toLowerCase()}`}>{o.urgencia || 'normal'}</span>
+                    )}
                   </td>
                   <td>{o.nota || '—'}</td>
                   <td>{new Date(o.fecha_hora).toLocaleString('es-MX')}</td>
